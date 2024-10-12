@@ -1,4 +1,7 @@
-# Setup
+## Script to filter Bus Open Data Services GTFS timetables for GMCA (Greater Manchester) and LCR (Liverpool City Region) 
+## Script to translate ATOC (rail services) timetables to GTFS format and filter for GMCA and LCR
+
+# Setup libraries
 library(tidytransit)
 library(UK2GTFS)
 library(tidyverse)
@@ -7,12 +10,9 @@ library(sf)
 library(mapview)
 library(here)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
-
 # 2. Load and Filter Datasets ------------------------------------------------------------
-
 # GMCA (Greater Manchester) Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -28,34 +28,33 @@ LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=25)
 buffered_LCR_boundary <- st_buffer(LCR_boundary, dist = 20000) %>% 
   st_transform(4326)
 
-# Joint Boundary
+# Combined Boundary
 Joint_boundary <- st_union(buffered_GMCA_boundary, buffered_LCR_boundary)
 
-# BODS --------------------------------------------------------------------
+# BODS timetables filter for GMCA and LCR ---------------------------------
 ## BODS GTFS Data 
-BODS <- tidytransit::read_gtfs("Data/GTFS_Data/itm_all_gtfs 2.zip")
+BODS <- tidytransit::read_gtfs("Data/GTFS_Data/itm_all_gtfs.zip") # Will need downloading from BODS as too large for Github
 # Filter BODS stops in GMCA
 BODS_GMCA <- filter_feed_by_area(BODS, buffered_GMCA_boundary)
-tidytransit::write_gtfs(BODS_GMCA, "Data/GTFS_Data/r5r/BODS_MANCH.gtfs.zip")
+tidytransit::write_gtfs(BODS_GMCA, "Data/BODS_MANCH.gtfs.zip")
 
 # Filter BODS stops in LCR
 BODS_LCR <- filter_feed_by_area(BODS, buffered_LCR_boundary)
-tidytransit::write_gtfs(BODS_LCR, "Data/GTFS_Data/r5r/BODS_LCR.gtfs.zip")
+tidytransit::write_gtfs(BODS_LCR, "Data/BODS_LCR.gtfs.zip")
 
 
 # Transform ATOC (rail data) ----------------------------------------------
 # Uses UK2GTFS V. ‘0.1.1’
 # More info: https://itsleeds.github.io/UK2GTFS/articles/ATOC.html
 # remotes::install_github("ITSleeds/UK2GTFS")
-
-# Source: https://data.atoc.org/?q=user
+# Data source: https://data.atoc.org/?q=user
 
 # Detect number of cores
 n_cores <- parallel::detectCores() -1
 
 # Transform ATOC to GTFS
-path_in <- "Data/GTFS_Data/ttis209.zip"
-locations <- "Data/GTFS_Data/tiplocs-merged.csv"
+path_in <- "Data/ttis209.zip"
+locations <- "Data/tiplocs-merged.csv"
 ttis209 <- atoc2gtfs(path_in = path_in, locations = locations, silent = FALSE, shapes = TRUE, ncores = n_cores)
 
 # Check internal validity
@@ -76,7 +75,6 @@ unique(gtfs_diff$stop_id)
 count(gtfs_diff, stop_id)
 # Trips affected
 unique(gtfs_diff$trip_id)
-
 
 # Filter stops in LCR and GMCA
 stops <- st_as_sf(ttis209_gtfs$stops, remove = FALSE, coords = c("stop_lon", "stop_lat"), crs = 4326)
@@ -117,7 +115,6 @@ ttis_LCR_GMCA <- list(
 ttis_LCR_GMCA_gtfs <- UK2GTFS::gtfs_force_valid(ttis_LCR_GMCA)
 map2(ttis_LCR_GMCA, ttis_LCR_GMCA_gtfs, identical)
 
-
 ## Write as GTFS - writes a zip folder
 UK2GTFS::gtfs_write(ttis_LCR_GMCA_gtfs, 
                     quote = TRUE, 
@@ -131,11 +128,8 @@ gc(reset = TRUE)
 # Load GMCA / LCR rail GTFS in tidytransit
 GMCA_LCR_rail_timetables <- tidytransit::read_gtfs("Data/GTFS_Data/r5r/rail_GMCA_LCR.gtfs.zip")
 
-# Mapview the stations
+# Mapview the stations (note, the routes do not show on mapview but the stops will)
 sf <- gtfs_as_sf(GMCA_LCR_rail_timetables)
 mapview(sf$stops) + 
   mapview(sf$shapes)+
   mapview(Joint_boundary, CRS=4382)
-
-
-
