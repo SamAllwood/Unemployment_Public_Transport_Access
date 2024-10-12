@@ -111,8 +111,21 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
   rename("LSOA_name" = "geography",
          "id" = "geography code",
          "Economically_active" = "Economic activity status: Economically active (excluding full-time students)")
- 
-# Manchester City Centre - St. Peter's Square
+
+# Business Register and Employment Survey (BRES) --------------------------------------------------------------------
+# Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
+BRES <- read_csv("Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
+  separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
+  rename("Employed" = "...2") %>%
+  dplyr::select(-c("...3", "...4","...5")) %>%
+  na.omit()
+# Load 2011-2021 LSOA lookup table
+LSOA_lookup <- read_csv("Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+
+# Jobcentre locations
+Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv")
+
+# Specify location of Manchester City Centre - St. Peter's Square
 MAN_CC <- 
   data.frame(id = "MAN_CC", lat = 53.478298, lon = -2.243281) %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -225,15 +238,15 @@ MAN_comp_ttm <-
   group_by(from_id) %>%
   summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
 
-# Jobcentre Plus Proximity ------------------------------------------------
+# Jobcentre Plus Locations ------------------------------------------------
 # https://www.gov.uk/government/publications/dwp-jobcentre-register
-# Jobcentre_plus <- read_csv("../Jobcentre_locations.csv") # Jobcentre locations 2019
+# Jobcentre_plus <- read_csv("Data/Jobcentre_locations.csv") # Jobcentre locations 2019
 # Geolocate the postcodes - don't need to do this every time as it uses Google API so takes a few mins
-# Jobcentre_plus <- Jobcentre_plus %>% mutate_geocode(Postcode, source="google", output="latlon", key="AIzaSyC7Ld1-mUEUP9ONWlipSAuHcjWaMjZS2nQ")
+# Jobcentre_plus <- Jobcentre_plus %>% mutate_geocode(Postcode, source="google", output="latlon", key=Google_API_key)
 # Filter out discontinued geocodes
 # Jobcentre_plus <- Jobcentre_plus %>% filter(!is.na(lon) & !is.na(lat))
-# write_csv(Jobcentre_plus, "../Jobcentre_locations_geocoded.csv")
-Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv")
+# write_csv(Jobcentre_plus, "Data/Jobcentre_locations_geocoded.csv")
+# Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv") # datasets are loaded at the start, this just for demonstration
 # Convert job centres to simple feature 
 Jobcentre_plus_geocoded <- Jobcentre_plus_geocoded %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -320,15 +333,6 @@ MANCH_ttm_walk <-
     verbose = FALSE,
     progress = TRUE)
 
-# Business Register and Employment Survey (BRES) --------------------------------------------------------------------
-# Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
-BRES <- read_csv("Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
-  separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
-  rename("Employed" = "...2") %>%
-  dplyr::select(-c("...3", "...4","...5")) %>%
-  na.omit()
-# Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Lookup correct LSOA codes
 # left join will duplicate 2011 employment numbers if LSOA is merged in 2021. 
