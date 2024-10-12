@@ -1,6 +1,5 @@
-## Script to calculate the parameters to decay the commuting time distribution
-## according to a logistic decay function. Mean (mu) and standard deviation (sigma) 
-## are required to fully define the logistic decay function.
+## Script to calculate the parameters to decay attractiveness of jobs by commuting time.
+## Logistic decay function is completely described by Mean (mu) and standard deviation (sigma).
 ## Data downloaded from the National Travel Survey (NTS) 2002-2022.
 
 # Setup libraries
@@ -11,15 +10,13 @@ library(stats4)
 library(flextable)
 library(officer)
 library(MASS)
-library(here)
 
-setwd(here::here())
 # Read datasets. These are too large for github so will need downloading directly 
 # from the UK Data Service website.
 
-individual <- read_tsv("Data/UKDA-5340-tab/tab/individual_eul_2002-2022.tab") 
-trip <- read_tsv("Data/UKDA-5340-tab/tab/trip_eul_2002-2022.tab")
-household <- read_tsv("Data/UKDA-5340-tab/tab/household_eul_2002-2022.tab")
+individual <- read_tsv("individual_eul_2002-2022.tab") 
+trip <- read_tsv("trip_eul_2002-2022.tab")
+household <- read_tsv("household_eul_2002-2022.tab")
 
 #create subsets of interesting variables
 ind_subset <- dplyr::select(individual,
@@ -46,7 +43,7 @@ data <- left_join(trip_subset, ind_subset, by="IndividualID") %>%
   mutate("Year" = substr(IndividualID, 1, 4) ) %>% 
   mutate(Year = as.numeric(Year)) 
 
-# commuting summary data over past 20 years - NW
+# commuting summary data over past 20 years - NorthWest region
 commute_summary_NW <- data %>% 
   filter(IndWkGOR_B02ID==2) %>% #filter for NW region
   filter(TripPurpose_B04ID == 1 ) %>% #filter for commuting trips
@@ -72,14 +69,12 @@ Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePerc
          "UK" = CommutePercentage_UK) %>%
   flextable() %>%
   set_table_properties(width = 1, layout = "autofit")
-# Create a Word document
+# Create a Word document with table
 doc <- read_docx()
-# Add the flextable to the document
 doc <- body_add_flextable(doc, value = Commuting)
-# Save the Word document
 print(doc, target = "../Final_Report/Commuting.docx")
 
-
+# Some summary figures
 number_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% nrow()
 num_PT_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% filter(MainMode_B04ID %in% c(7,8,9,10,11,12,13)) %>% nrow()
 commute_PT_pc <- num_PT_commutes/number_commutes*100
@@ -91,21 +86,20 @@ walking_trips <- data %>% filter(MainMode_B04ID == 1) %>% filter(TripPurpose_B04
 quantile_walk_99 <- quantile(walking_trips$TripTotalTime, 0.99)
 
 # Calculate Commuting Time ------------------------------------------------
-#filter for commuting trips
 commuting_trips_A <- data %>% filter(TripPurpose_B04ID==1) # leaves 824436 trips
-#filter for NorthWest region
+# filter for NorthWest region
 commuting_trips_NW <- commuting_trips_A %>% filter(IndWkGOR_B02ID==2) # leaves 91914 trips
-#filter for public transport trips
+# filter for public transport trips
 commuting_trips_NW_PT <- commuting_trips_NW %>% filter(MainMode_B04ID %in% c(7,8,9,10,11,12,13)) # leaves 11680 trips
 # Calculate the 99th percentile of the 'TripTotalTime' column
 quantile_commute_99 <- quantile(commuting_trips_NW_PT$TripTotalTime, 0.99) # this calculation shows 
                                                                      # 1% of the commute times exceed 120mins
-#filter realistic daily commuting durations (between 1 and 120mins) - leaves 11568 trips
+# filter realistic daily commuting durations (between 1 and 120mins) - leaves 11568 trips
 commuting_trips <- commuting_trips_NW_PT %>% 
   filter(TripTotalTime<=121) %>%
   filter(TripTotalTime>1)
 
-#plot histograms and density plots
+# plot histograms and density plots
 ggplot(data = commuting_trips, aes(x=TripTotalTime)) + 
   geom_histogram(bins=8) 
 ggplot(data = commuting_trips, aes(x=TripTotalTime)) + 
@@ -125,7 +119,7 @@ ggplot(plot_data, aes(x = TripTotalTime, y = CDF)) +
   labs(x = "Trip Total Time", y = "CDF", title = "CDF of Trip Total Time")
 
 
-# Fit a logistic distribution to your travel cost data
+# Fit a logistic distribution to travel data
 fit <- fitdistr(commuting_trips$TripTotalTime, "logistic")
 
 mean <- fit$estimate[1]
@@ -140,7 +134,7 @@ ggplot(data = commuting_trips, aes(x=log_trips)) +
 
 ggplot(data = commuting_trips, aes(x=log_trips)) + 
   geom_density() 
-# log-transforming data seems to make the distribution look more normal, so will continue with lognormal distribution
+# log-transforming data makes the distribution look more normal, so will continue with lognormal distribution
 
 # Define likelihood function
 log_likelihood <- function(mu, sigma) {
@@ -176,7 +170,7 @@ ggplot(data = commuting_trips, aes(x = log_trips)) +
 
 residuals <- log_trips-simulated_times
 
-#Predicted values on log-scale (tried just using the conditional mean but didn't give any range of fitted values obviously)
+# Predicted values on log-scale
 predicted_log_values <- dlnorm(log_trips, meanlog = mu_estimated, sdlog = sigma_estimated, log=FALSE) 
 
 # Exponentiate to get predictions on the original scale
@@ -186,10 +180,11 @@ simulated_times_sort <- sort(simulated_times)
 log_trips_sort <- sort(log_trips)
 residuals <- log_trips_sort - simulated_times_sort
 
-#plot residuals vs fitted plots
+#plot residuals vs fitted with zero line for reference
 plot(simulated_times, residuals, xlab = "Simulated Times", ylab = "Residuals")+
   abline(h = 0, col = "red")  # Add a horizontal line at zero 
 
+# Quantile-quantile plot of residuals
 qqnorm(residuals,
        main = "Model 4")+
   qqline(residuals)
