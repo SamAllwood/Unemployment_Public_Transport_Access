@@ -12,7 +12,7 @@ library(here)
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
 # GMCA (Greater Manchester) Boundary + buffer
-Boundaries <- read_sf("Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -53,7 +53,7 @@ tidytransit::write_gtfs(BODS_LCR, "Data/BODS_LCR.gtfs.zip")
 n_cores <- parallel::detectCores() -1
 
 # Transform ATOC to GTFS
-path_in <- "Data/ttis209.zip"
+path_in <- "Data/ttis209.zip" # Also too large for github but available at the link above
 locations <- "Data/tiplocs-merged.csv"
 ttis209 <- atoc2gtfs(path_in = path_in, locations = locations, silent = FALSE, shapes = TRUE, ncores = n_cores)
 
