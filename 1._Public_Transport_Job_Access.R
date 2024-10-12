@@ -1,5 +1,6 @@
+## Script to calculate public transport travel time matrix for GMCA
 
-# 1. Setup ----------------------------------------------------------------
+# 1. Setup libraries ----------------------------------------------------------------
 library(tidyverse)
 library(knitr)
 library(tidytransit)
@@ -15,10 +16,9 @@ options(java.parameters = "-Xmx8G")
 options(timeout = 1000)
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -28,37 +28,33 @@ buffered_GMCA_boundary <- st_buffer(GMCA_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("Data/LAD_DEC_2021_GB_BFC.shp") %>% # too large for github but available from ONS Geoportal
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
-# mapview(LADs_MANCH)+mapview(GMCA_boundary)
 
-# Read LSOA pop-weighted centroids
-lsoas <- st_read("Data/GTFS_Data/LSOA/LLSOA_Dec_2021_PWC_for_England_and_Wales_2022/LSOA_PopCentroids_EW_2021_V3.shp") %>%
-  st_transform(4326)
+# Read LSOA population-weighted centroids
+lsoas <- st_read("Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
+  st_transform(4326) %>%
+  st_make_valid() %>%
+  rename(id = LSOA21CD) 
+
 # Filter LSOA PW-centroids
-lsoas <- st_make_valid(lsoas)
 lsoa_PWC_within_GMCA <- lsoas %>% 
-  filter(as.vector(st_within(., GMCA_boundary, sparse = FALSE))) %>% 
-  st_transform(4326) %>% rename(id = LSOA21CD) 
+  filter(as.vector(st_within(., GMCA_boundary, sparse = FALSE))) 
 lsoa_PWC_within_GMCA_buffer <- lsoas %>% 
-  filter(as.vector(st_within(., buffered_GMCA_boundary, sparse = FALSE))) %>% 
-  st_transform(4326) %>% rename(id = LSOA21CD) 
-# transform CRS to WGS84
-lsoa_PWC_within_GMCA_buffer$geometry <- st_transform(lsoa_PWC_within_GMCA_buffer$geometry, 4326)
-lsoa_PWC_within_GMCA$geometry <- st_transform(lsoa_PWC_within_GMCA$geometry, 4326)
+  filter(as.vector(st_within(., buffered_GMCA_boundary, sparse = FALSE))) 
 
-#Read LSOA boundaries
-lsoa_boundaries <- st_read("Data/GTFS_Data/LSOA/Lower_layer_Super_Output_Areas_2021_EW_BFC_V8/LSOA_2021_EW_BFC_V8.shp") %>%
-  st_transform(4326)
-lsoa_boundaries$geometry <- st_make_valid(lsoa_boundaries$geometry)
+# Read LSOA boundaries (too large for github but available on ONS Geoportal)
+lsoa_boundaries <- st_read("Data/LSOA_2021_EW_BFC_V8.shp") %>% 
+  st_transform(4326) %>%
+  st_make_valid() 
+# Calculate LSOA area
 lsoa_boundaries$LSOA_area <- st_area(lsoa_boundaries$geometry)
 lsoa_boundaries$LSOA_area_km2 <- lsoa_boundaries$LSOA_area/1000000
 
-# Filter LSOA boundaries for GMCA buffer
-#lsoa_boundaries <- st_make_valid(lsoa_boundaries)
+# Filter LSOA boundaries for GMCA
 lsoa_boundaries_within_GMCA_buffer <- lsoa_boundaries[st_within(lsoa_boundaries, 
                                                                 buffered_GMCA_boundary, 
                                                                 sparse = FALSE), ]
@@ -66,23 +62,24 @@ lsoa_boundaries_within_GMCA <- lsoa_boundaries[st_within(lsoa_boundaries,
                                                          GMCA_bound_small_buffer, 
                                                          sparse = FALSE), ]
 # Read Towns and City boundaries
-towns <- st_read("Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
-  st_transform(4326) 
-towns$geometry <- st_make_valid(towns$geometry)
+towns <- st_read("Data/TCITY_2015_EW_BGG_V2.shp") %>%
+  st_transform(4326) %>%
+  st_make_valid()
 towns_within_GMCA_buffer <- towns[st_within(towns, buffered_GMCA_boundary, sparse = FALSE), ]
+
+# Towns and City centroids
 towns_centroids <- st_centroid(towns_within_GMCA_buffer) %>%
   rename(id = TCITY15CD) %>% st_transform(4326)
-
+# Geometric centroids are in unrepresentative places, so manually identify town/city centres
 towns_manual_MAN <- data.frame(
   id = c("Manchester", "Salford", "Stockport", "Oldham", "Rochdale", "Bury", "Bolton", "Wigan"),
   lon = c(-2.243185, -2.277002, -2.161260, -2.112658, -2.153749, -2.297645, -2.429588, -2.630668), # Updated longitudes
   lat = c(53.478214, 53.485645, 53.406539, 53.540754, 53.611260, 53.592658, 53.578226, 53.545255)  # Updated latitudes
-) 
+) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) # convert directly to sf
 
-# Convert the dataframe to an sf object, ensuring WGS 84 (EPSG: 4326) CRS
-towns_manual_MAN <- st_as_sf(towns_manual_MAN, coords = c("lon", "lat"), crs = 4326)
-
-# Label LSOAs within town boundaries - manual adjustments to tidy up intersections
+# Adjust LSOAs within town boundaries - manual corrections to tidy up intersections where town boundaries and LAD boundaries 
+# overlap
 towns_with_buffer <- towns_within_GMCA_buffer %>% st_buffer(dist=400)
 lsoa_with_town_info <- st_join(lsoa_boundaries_within_GMCA, towns_with_buffer, join = st_within)
 lsoa_with_town_info <- lsoa_with_town_info %>%
@@ -106,12 +103,6 @@ lsoa_with_town_info_min <- lsoa_with_town_info %>%
   as.data.frame() %>% 
   distinct(LSOA21CD, .keep_all=TRUE)
 
-#lsoa_with_town_info_min %>% count(TCITY15NM=="Manchester")
-#mapview(lsoa_with_town_info %>% filter(TCITY15NM != "Suburb"))+ mapview(towns_within_GMCA_buffer)
-#mapview(lsoa_boundaries_within_towns)#+mapview(towns_within_GMCA_buffer)
-#mapview(towns_within_GMCA_buffer)+mapview(GMCA_boundary)+mapview(towns_centroids)+mapview(towns_manual_MAN)
-#mapview(lsoa_with_town_info)+ mapview(towns_with_buffer)
-
 # Employed Residents
 Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
@@ -129,25 +120,18 @@ MAN_CC_point <-
   geom_sf(data = MAN_CC, shape = 21, fill = 'white', size = 2)
 
 
-## BODS GTFS Data - just download once, filter once then use the BODS_MANCH.gtfs.zip file created from the filter.  
-# BODS <- read_gtfs("itm_all_gtfs 2.zip")
-# Filter BODS stops in Manchester
-#BODS_MANCH <- filter_feed_by_area(BODS, buffered_GMCA_boundary)
-#summary(BODS_MANCH)
-#write_gtfs(BODS_MANCH, "BODS_MANCH.gtfs.zip")
-
 # 3. OpenStreetMap ---------------------------------------------------------------
 # PBF road and pedestrian network for England - necessary to 
 # get all of transit network activity and avoid boundary issues.
-# Only need to download once so including the url for reference
-#england_pbf <- "https://download.geofabrik.de/europe/united-kingdom/england-latest.osm.pbf"
-#file.remove("./r5r/geofabrik_england-latest.osm.pbf")
-#oe_download(file_url = england_pbf, download_directory = "./r5r")
+# File is large, only need to download once so including the url and code for reference
+# england_pbf <- "https://download.geofabrik.de/europe/united-kingdom/england-latest.osm.pbf"
+# file.remove("./r5r/geofabrik_england-latest.osm.pbf")
+# oe_download(file_url = england_pbf, download_directory = "./r5r")
+
 
 # 4. R5R Network Setup -------------------------------------------------------
-
 # Get input files
-input_files <- list.files("Data/GTFS_Data/r5r", 
+input_files <- list.files("Data/GTFS_Data", 
   recursive = TRUE,
   pattern = 'gtfs\\.zip$|pbf$',
   full.names = TRUE)
@@ -160,14 +144,11 @@ input_files
 # view(BODS_manch_valid)
 
 # Read multi-modal network
-gc() #this setup step requires quite a bit of memory, so best to gc first
-options(java.parameters = "-Xmx8G")
-r5r_core <- setup_r5(data_path = "Data/GTFS_Data/r5r", 
+gc() # this setup step requires quite a bit of memory, so best to gc first
+r5r_core <- setup_r5(data_path = "Data/GTFS_Data", 
                      verbose=TRUE,
-                     overwrite = FALSE) # make sure you leave this to run after it indicates it's finished
-
+                     overwrite = FALSE) 
 summary(r5r_core)
-print(r5r_core)
 network <- transit_network_to_sf(r5r_core) 
 
 #Check transit network visuals - only for diagnostics and also shapefile doesn't show rail network
@@ -176,17 +157,15 @@ network <- transit_network_to_sf(r5r_core)
 #network$stops <- network$stops %>% st_transform(4326) 
 #network$routes <- network$routes %>% filter(mode == "TRAM")
 
-# Transit Calculation Parameters ------------------------------------------------------
+# Travel Time Matrix Calculation Parameters ------------------------------------------------------
 # Time and date of departure
 departure_datetime <- as.POSIXct("2024-05-21 08:00:00") 
-departure_datetime7 <- as.POSIXct("2024-05-21 07:00:00") 
-departure_datetime830 <- as.POSIXct("2024-05-21 08:30:00") 
-mode = c( "TRANSIT", "WALK") # note function always includes 'WALK' anyway
-walk_speed = 4.32
-max_duration = 200L
+mode = c( "TRANSIT", "WALK") # note function always includes 'WALK' anyway, and 'Transit' includes rail, bus, train and tram
+walk_speed = 4.32 # from the literature
+# max_duration = 200L # including a max duration leads to NA's where the max duration is exceeded so I removed it
 max_walk_time = 30L
 
-MAN_TT_CC <- 
+MAN_TTM_CC <- 
   travel_time_matrix(
     r5r_core = r5r_core, 
     origins = lsoa_PWC_within_GMCA, 
@@ -200,7 +179,8 @@ MAN_TT_CC <-
   rename("Traveltime_CC" = "travel_time_p50") %>%
   select(-"to_id")
 
-MAN_Emp_ettm <-
+# Extended travel time matrix shows more, takes longer, but helpful for diagnostics
+MAN_ETTM_CC <-
   expanded_travel_time_matrix(
     r5r_core = r5r_core, 
     origins = lsoa_PWC_within_GMCA, 
@@ -208,13 +188,12 @@ MAN_Emp_ettm <-
     mode = mode,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = 50,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE) 
 
-# Travel time to employment centres ---------------------------------------
-MAN_Emp_ttm <-
+# Travel time to employment centres (centre points of major towns and cities) ----------------------
+MAN_TTM_Emp <-
   travel_time_matrix(
     r5r_core = r5r_core, 
     origins = lsoa_PWC_within_GMCA, 
@@ -226,8 +205,8 @@ MAN_Emp_ttm <-
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE) 
-# Get the minimum employment centre travel time for each LSOA
-closest_emp_centre_LSOA <- MAN_Emp_ttm %>%
+# Calculate the closest employment centre for each LSOA
+closest_emp_centre_LSOA <- MAN_TTM_Emp %>%
   group_by(from_id) %>%
   summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
 
@@ -246,146 +225,14 @@ MAN_comp_ttm <-
   group_by(from_id) %>%
   summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
 
-# Travel time with 20-min extended time window
-MAN_comp_ttm_ext20 <-
-  travel_time_matrix(
-    r5r_core = r5r_core, 
-    origins = lsoa_PWC_within_GMCA, 
-    destinations = towns_manual_MAN, 
-    time_window = 20,
-    mode = mode,
-    departure_datetime = departure_datetime,
-    walk_speed = walk_speed,
-    max_walk_time = max_walk_time,
-    verbose = FALSE,
-    progress = TRUE) %>%
-  group_by(from_id) %>%
-  summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
-
-# Travel time with 60-min extended time window
-MAN_comp_ttm_ext60 <-
-  travel_time_matrix(
-    r5r_core = r5r_core, 
-    origins = lsoa_PWC_within_GMCA, 
-    destinations = towns_manual_MAN, 
-    time_window = 60,
-    mode = mode,
-    departure_datetime = departure_datetime,
-    walk_speed = walk_speed,
-    max_walk_time = max_walk_time,
-    verbose = FALSE,
-    progress = TRUE) %>%
-  group_by(from_id) %>%
-  summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
-
-# Join city centre travel time to LSOAs dataframe
-MAN_Traveltime_compare <- left_join(lsoa_boundaries_within_GMCA, MAN_comp_ttm, by = c("LSOA21CD" = "from_id")) %>% 
-  rename("travel_time_10min_window" = "closest_empcentre") %>% 
-  left_join(MAN_comp_ttm_ext20, by=c("LSOA21CD" = "from_id")) %>% 
-  rename("travel_time_20min_window" = "closest_empcentre")  %>% 
-  left_join(MAN_comp_ttm_ext60, by=c("LSOA21CD" = "from_id")) %>% 
-  rename("travel_time_60min_window" = "closest_empcentre")  %>% 
-  mutate(travel_time_diff20_10 = travel_time_20min_window - travel_time_10min_window) %>% 
-  mutate(travel_time_diff60_10 = travel_time_60min_window - travel_time_10min_window) %>% 
-    drop_na()
-
-map1 <- MAN_Traveltime_compare %>%
-  ggplot() +
-  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
-  geom_sf(aes(fill = travel_time_10min_window), col = NA) +
-  scale_fill_viridis_b(breaks = seq(0, 60, 15), direction = -1) +
-  labs(fill =  "10min time window") +
-  guides(fill = guide_legend(override.aes = list(color = NA, fill = NA),
-                             label.theme = element_blank()))+
-  theme_void() +
-  theme(legend.position = "bottom")
-
-map2 <- MAN_Traveltime_compare %>%
-  ggplot() +
-  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
-  geom_sf(aes(fill = travel_time_60min_window), col = NA) +
-  scale_fill_viridis_b(breaks = seq(0, 60, 15), direction = -1) +
-  labs(fill = "60min time window") +
-  theme_void()+
-  theme(legend.position = "bottom")
-
-combined_time_window <- map1 + map2 + plot_annotation(title = "Comparison of Time Windows")
-#ggsave(file = "Plots/Time_window_comparison.jpeg", device = "jpeg", plot = combined_time_window)
-
-# Compare departure times
-MAN_comp_ttm_7 <-
-  travel_time_matrix(
-    r5r_core = r5r_core, 
-    origins = lsoa_PWC_within_GMCA, 
-    destinations = towns_manual_MAN, 
-    mode = mode,
-    departure_datetime = departure_datetime7,
-    walk_speed = walk_speed,
-    max_walk_time = max_walk_time,
-    verbose = FALSE,
-    progress = TRUE) %>%
-  group_by(from_id) %>%
-  summarize(closest_empcentre7 = min(travel_time_p50, na.rm = TRUE))
-MAN_comp_ttm_830 <-
-  travel_time_matrix(
-    r5r_core = r5r_core, 
-    origins = lsoa_PWC_within_GMCA, 
-    destinations = towns_manual_MAN, 
-    mode = mode,
-    departure_datetime = departure_datetime830,
-    walk_speed = walk_speed,
-    max_walk_time = max_walk_time,
-    verbose = FALSE,
-    progress = TRUE) %>%
-  group_by(from_id) %>%
-  summarize(closest_empcentre830 = min(travel_time_p50, na.rm = TRUE))
-
-MAN_depart_time <- left_join(lsoa_boundaries_within_GMCA, MAN_comp_ttm_7, by = c("LSOA21CD" = "from_id")) %>% 
-  left_join(MAN_comp_ttm_830, by=c("LSOA21CD" = "from_id")) %>% 
-  left_join(MAN_comp_ttm, by=c("LSOA21CD" = "from_id")) %>% 
-  rename("closest_empcentre8" = "closest_empcentre")  
-
-map7 <- MAN_depart_time %>%
-  ggplot() +
-  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
-  geom_sf(aes(fill = closest_empcentre7), col = NA) +
-  scale_fill_viridis_b(breaks = seq(0, 60, 15), direction = -1) +
-  labs(fill =  "7:00am") +
-  guides(fill = guide_legend(override.aes = list(color = NA, fill = NA),
-                             label.theme = element_blank()))+
-  theme_void() +
-  theme(legend.position = "bottom")
-map8 <- MAN_depart_time %>%
-  ggplot() +
-  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
-  geom_sf(aes(fill = closest_empcentre8), col = NA) +
-  scale_fill_viridis_b(breaks = seq(0, 60, 15), direction = -1) +
-  labs(fill =  "8:00am") +
-  guides(fill = guide_legend(override.aes = list(color = NA, fill = NA),
-                             label.theme = element_blank()))+
-  theme_void() +
-  theme(legend.position = "bottom")
-map830 <- MAN_depart_time %>%
-  ggplot() +
-  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
-  geom_sf(aes(fill = closest_empcentre830), col = NA) +
-  scale_fill_viridis_b(breaks = seq(0, 60, 15), direction = -1) +
-  labs(fill =  "8:30am") +
-  theme_void() +
-  theme(legend.position = "bottom")
-
-combined_depart <- map7+ map8 + map830 + plot_annotation(title = "Comparison of Planned Departure Times")
-ggsave(file = "Plots/Departure_time_comparison.jpeg", device = "jpeg", plot = combined_depart)
-
-
 # Jobcentre Plus Proximity ------------------------------------------------
 # https://www.gov.uk/government/publications/dwp-jobcentre-register
-#Jobcentre_plus <- read_csv("../Jobcentre_locations.csv") # Jobcentre locations 2019
+# Jobcentre_plus <- read_csv("../Jobcentre_locations.csv") # Jobcentre locations 2019
 # Geolocate the postcodes - don't need to do this every time as it uses Google API so takes a few mins
-#Jobcentre_plus <- Jobcentre_plus %>% mutate_geocode(Postcode, source="google", output="latlon", key="AIzaSyC7Ld1-mUEUP9ONWlipSAuHcjWaMjZS2nQ")
+# Jobcentre_plus <- Jobcentre_plus %>% mutate_geocode(Postcode, source="google", output="latlon", key="AIzaSyC7Ld1-mUEUP9ONWlipSAuHcjWaMjZS2nQ")
 # Filter out discontinued geocodes
-#Jobcentre_plus <- Jobcentre_plus %>% filter(!is.na(lon) & !is.na(lat))
-#write_csv(Jobcentre_plus, "../Jobcentre_locations_geocoded.csv")
+# Jobcentre_plus <- Jobcentre_plus %>% filter(!is.na(lon) & !is.na(lat))
+# write_csv(Jobcentre_plus, "../Jobcentre_locations_geocoded.csv")
 Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv")
 # Convert job centres to simple feature 
 Jobcentre_plus_geocoded <- Jobcentre_plus_geocoded %>% 
@@ -398,7 +245,7 @@ jobcentres_within_GMCA <-  Jobcentre_plus_geocoded %>%
   filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326) %>% rename(id = "NOMIS Office Code") 
 
-# calculate travel time from each LSOA to closest job centre
+# calculate travel time from each LSOA to all job centres
 jobcentre_proximity <-
   travel_time_matrix(
     r5r_core = r5r_core, 
@@ -473,7 +320,7 @@ MANCH_ttm_walk <-
     verbose = FALSE,
     progress = TRUE)
 
-# BRES --------------------------------------------------------------------
+# Business Register and Employment Survey (BRES) --------------------------------------------------------------------
 # Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
 BRES <- read_csv("Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
   separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
@@ -533,8 +380,8 @@ job_access_walk <- gravity(
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_Walk" = "Employed")
 
-# Demand Potential Job Accessibility Index --------------------------------
-# Travel Time Matrix for whole buffer
+# Demand-Potential Adjusted Public Transport Job Accessibility Index --------------------------------
+# Travel Time Matrix for whole buffer as demand may emanate from outside GMCA boundary
 MANCH_ttm_buffer <-
   travel_time_matrix(
     r5r_core = r5r_core, 
@@ -561,7 +408,7 @@ demand_potential <- gravity(
   mutate(Jobs_over_demand_potential = Employed/Demand_potential) %>%
   as_tibble()
 
-# PTJA adjusted for demand potential of highly populated areas
+# PTJA adjusted for demand potential of population decayed according to travel time to location
 job_access_demand <- gravity(
   travel_matrix=MANCH_ttm,
   travel_cost="travel_time_p50",
@@ -571,25 +418,7 @@ job_access_demand <- gravity(
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_demand" = "Jobs_over_demand_potential")
 
-#Testing data
-trav <- data.frame(
-  from_id = 123,
-  to_id = 456,
-  travel_time_p50 =10)
-opp <- data.frame(
-  id = 456,
-  Employed = 1000)
-        
-(job_access_10 <- gravity(
-  travel_matrix=trav,
-  travel_cost="travel_time_p50",
-  land_use_data=opp,
-  opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
-  fill_missing_ids = TRUE) %>%
-    rename("PT_Job_Access_Index" = "Employed"))
-
-# Join job_access_index to LSOA boundaries and other data
+# Join datasets to LSOA boundaries for export
 MANCH_dataset <- MANCH_TT_Jobcentre %>% 
   left_join(job_access, by = c("LSOA21CD"="id")) %>%
   left_join(job_access_bus, by = c("LSOA21CD"="id")) %>%
@@ -599,9 +428,9 @@ MANCH_dataset <- MANCH_TT_Jobcentre %>%
   rename("Travel_time_Job_Centre" = "closest_jobcentre") %>%
   left_join(closest_emp_centre_LSOA, by = c("LSOA21CD"="from_id")) %>%
   rename("Travel_time_Emp_Centre" = "closest_empcentre") %>%
-  left_join(MAN_TT_CC, by = c("LSOA21CD"="from_id")) %>%
+  left_join(MAN_TTM_CC, by = c("LSOA21CD"="from_id")) %>%
   left_join(job_access_demand, by = c("LSOA21CD"="id")) 
 
-# Write dataset to shapefile
+# Write datasets to shapefiles
 st_write(MANCH_dataset, "Data/MANCH_dataset.shp", append=FALSE)
 st_write(towns_manual_MAN, "Data/towns_centroids.shp", append=FALSE)
