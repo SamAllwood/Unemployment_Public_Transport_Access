@@ -1,4 +1,4 @@
-## Script to calculate public transport travel time matrix for GMCA
+## Script to calculate public transport job accessibility for GMCA
 
 # 1. Setup libraries ----------------------------------------------------------------
 library(tidyverse)
