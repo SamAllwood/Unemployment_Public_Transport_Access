@@ -3,5 +3,6 @@ MSc Urban Transport dissertation on relationship between unemployment and public
 
 ![PTJDA-D](Images/PTJA_D.jpeg)
 
-###Population Density Distribution across GMCA
+### Population Density Distribution across GMCA
+
 ![Pop_dens](Images/Manch_Pop.png)
