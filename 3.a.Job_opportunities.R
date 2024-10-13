@@ -1,5 +1,5 @@
+## Script for choropleth map of job opportunities in GMCA
 # 1. Setup ----------------------------------------------------------------
-
 library(tidyverse)
 library(knitr)
 library(tidytransit)
@@ -10,10 +10,7 @@ library(ggplot2)
 library(classInt)
 library(ggspatial)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
-
 # 2. Load Data ------------------------------------------------------------
-
 # Load Manchester Geo data from file
 MANCH_dataset_jobs <- read_sf("Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
@@ -46,12 +43,18 @@ towns_within_GMCA_buffer <- towns[st_within(towns, GMCA_bound_small_buffer, spar
 # # Plot job locations levels across GMCA -------------------------------------------
 # create job density variable
 MANCH_dataset_jobs$job_density <- MANCH_dataset_jobs$Employed_Population/MANCH_dataset_jobs$LSOA_Area
+
 # Calculate PTJA quantile breaks
 breaks_jobs <- classIntervals(MANCH_dataset_jobs$job_density, n = 5, style = "quantile")$brks
+
 # Create a factor variable for PTJA coloring
-MANCH_dataset_jobs$job_density_colour <- cut(MANCH_dataset_jobs$job_density, breaks = breaks_jobs, include.lowest = TRUE, labels = FALSE)
-MANCH_dataset_jobs$job_density_colour <- as.factor(MANCH_dataset_jobs$job_density_colour)
+MANCH_dataset_jobs$job_density_colour <- cut(MANCH_dataset_jobs$job_density, 
+                                             breaks = breaks_jobs, 
+                                             include.lowest = TRUE, 
+                                             labels = FALSE) %>%
+                                          as.factor()
 labels_jobs <- c("Lowest quintile","","","","Highest quintile")
+
 (jobs <- MANCH_dataset_jobs %>%
   ggplot() +
   geom_sf(data=GMCA_boundary, colour="black",linewidth=1.5)+
@@ -80,6 +83,7 @@ ggsave(file = "Plots/jobs.jpeg", device = "jpeg", plot = jobs)
 
 # Create job locations variable as % of GMCA jobs
 MANCH_dataset_jobs$Employed_Population_percent <- MANCH_dataset_jobs$Employed_Population*100/sum(MANCH_dataset_jobs$Employed_Population)
+
 # plot as % of total jobs in GMCA
 MANCH_dataset_jobs %>%
   filter(job_density<50000)%>%
