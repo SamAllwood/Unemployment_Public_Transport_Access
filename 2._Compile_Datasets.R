@@ -12,8 +12,7 @@ library(readODS)
 library(accessibility)
 
 # 2. Load Data ------------------------------------------------------------
-
-# Load Manchester Geo data from file
+# Load Manchester Geo data from 1._Public_transport_job_acess.R
 MANCH_dataset <- read_sf("Data/MANCH_dataset.shp") %>%
                                    rename("LSOA_Code" = "LSOA21C",
                                           "LSOA_Name" = "LSOA21N",
@@ -27,7 +26,7 @@ MANCH_dataset <- read_sf("Data/MANCH_dataset.shp") %>%
                                           "Traveltime_empcent" = "Tr__E_C",
                                           "Traveltime_CC" = "Trvl_CC",
                                           "PT_Job_Access_Index_Demand" = "PT_Jb_A_I_")
-towns_centroids <- read_sf("Data/towns_centroids.shp") #manually updated in 1._Public_Transport_Job_Access.R
+towns_centroids <- read_sf("Data/towns_centroids.shp") # manually updated in 1._Public_Transport_Job_Access.R
 
 # Load Metrolink Shapefile
 Metrolink <- st_read("Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
@@ -197,9 +196,41 @@ MANCH_dataset_full <- left_join(MANCH_dataset, Employment, by = c("LSOA_Code" = 
          LSOA_Area = as.numeric(LSOA_Area)) %>%
   rename(LAD22CD = LAD22CD.x)
 
-# Write dataset to csv
-write_csv(MANCH_dataset_full, "Data/MANCH_dataset_full.csv")
+# Calculate higher-level unemployment rates
+Overall_unemp_rate <- sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100
+MANCH_unemp_rate <- sum(MANCH_dataset_full$Unemployed) / sum(MANCH_dataset_full$"Economically_active") *100
+Town_unemp_rate <- MANCH_dataset_full %>%
+  filter(twnsbrb == "Urban") %>%
+  summarise(Unemployed_sum = sum(Unemployed),
+            Economically_active_sum = sum(Economically_active)) %>%
+  mutate(Unemployment_rate = (Unemployed_sum / Economically_active_sum) * 100) %>%
+  pull(Unemployment_rate)
+Suburb_unemp_rate <- MANCH_dataset_full %>%
+  filter(twnsbrb == "Suburb") %>%
+  summarise(Unemployed_sum = sum(Unemployed),
+            Economically_active_sum = sum(Economically_active)) %>%
+  mutate(Unemployment_rate = (Unemployed_sum / Economically_active_sum) * 100) %>%
+  pull(Unemployment_rate)
 
+# Write dataset to csv
+MANCH_dataset_full %>% dplyr::select ( -c(
+                                   "Population (16 and over)",  # remove this as it is not the most accurate population figure
+                                   Total_Households,  #remove the rest in order to reduce the size of the dataset a little
+                                   No_Cars, 
+                                   "Number white",
+                                   LSOA11CD,
+                                   LSOA11_Name,
+                                   LSOA11NM,
+                                   LSOA21NM,
+                                   ObjectId,
+                                   No_quals,
+                                   Level_1_qual,
+                                   Level_2_qual,
+                                   Apprent_qual
+                                )) %>%
+  write_csv( "Data/MANCH_dataset_full.csv", append = FALSE)
+
+# Write dataset to shapefile
 MANCH_dataset_full %>% dplyr::select ( -c(
                                    "Population (16 and over)",
                                    Total_Households,
@@ -217,19 +248,5 @@ MANCH_dataset_full %>% dplyr::select ( -c(
                                 )) %>%
   st_write( "Data/MANCH_dataset_full_sf.shp", append = FALSE)
 
-# Calculate higher-level unemployment rates
-Overall_unemp_rate <- sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100
-MANCH_unemp_rate <- sum(MANCH_dataset_full$Unemployed) / sum(MANCH_dataset_full$"Economically_active") *100
-Town_unemp_rate <- MANCH_dataset_full %>%
-  filter(twnsbrb == "Urban") %>%
-  summarise(Unemployed_sum = sum(Unemployed),
-            Economically_active_sum = sum(Economically_active)) %>%
-  mutate(Unemployment_rate = (Unemployed_sum / Economically_active_sum) * 100) %>%
-  pull(Unemployment_rate)
-Suburb_unemp_rate <- MANCH_dataset_full %>%
-  filter(twnsbrb == "Suburb") %>%
-  summarise(Unemployed_sum = sum(Unemployed),
-            Economically_active_sum = sum(Economically_active)) %>%
-  mutate(Unemployment_rate = (Unemployed_sum / Economically_active_sum) * 100) %>%
-  pull(Unemployment_rate)
+
 
