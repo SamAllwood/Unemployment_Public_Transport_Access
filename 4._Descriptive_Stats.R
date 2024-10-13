@@ -1,5 +1,5 @@
+## Script for descriptive statistics tabulation and towns and city-level statistics
 # 1. Setup ----------------------------------------------------------------
-
 library(tidyverse)
 library(knitr)
 library(tidytransit)
@@ -13,8 +13,6 @@ library(gtsummary)
 library(kableExtra)
 library(officer)
 library(flextable)
-
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "PopulationDensityChange.R" script
@@ -52,18 +50,14 @@ MANCH_dataset_descript <- read_csv("Data/MANCH_dataset_full.csv") %>%
          "Employed_Population",
          "Economically_active",
          "Unemployed",
-    #     "Traveltime_empcent",
-    #     "TravelTime_Jobcentre",
          "No_car_rate",
          "White_percent",
          "Single_parent_household_rate",
          "Low_qual_percent",
          "SEC_Management_pc") %>%
-#         "SEC_Lower_supervisory_routine_pc") %>%
   mutate(#TravelTime_Jobcentre = as.numeric(TravelTime_Jobcentre),
          PT_Job_Access_Index = as.numeric(PT_Job_Access_Index)/1000,
          Unemployment_rate = as.numeric(Unemployment_rate),
-  #       Traveltime_empcent = as.numeric(Traveltime_empcent),
          No_car_rate = as.numeric(No_car_rate),
          White_percent = as.numeric(White_percent),
          Single_parent_household_rate = as.numeric(Single_parent_household_rate),
@@ -73,7 +67,6 @@ MANCH_dataset_descript <- read_csv("Data/MANCH_dataset_full.csv") %>%
          Man_Pop = as.numeric(Man_Pop),
          Man_Pop_Dens = as.numeric(Man_Pop_Dens),
          SEC_Management_pc = as.numeric(SEC_Management_pc))
-#         SEC_Lower_supervisory_routine_pc = as.numeric(SEC_Lower_supervisory_routine_pc))
 
 # Unemployment Levels
 Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
@@ -103,8 +96,6 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
                                all_categorical() ~ "{n} / {N} ({p}%)"),
         label = list(      Man_Pop ~ "Population",
                            Man_Pop_Dens ~ "Population Density (persons / sq.km)",
-                      #     TravelTime_Jobcentre ~ "Travel Time to Jobcentre (mins)",
-                      #     Traveltime_empcent ~ "Travel Time to Employment Centre (mins)",
                            PT_Job_Access_Index ~ "PTJA Index (/1,000)",
                            Unemployment_rate ~ "Unemployment Rate (%)",
                            No_car_rate ~ "No Car Rate (%)",
@@ -112,27 +103,21 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
                            Single_parent_household_rate ~ "Single Parent Households (%)",
                            Low_qual_percent ~ "Low Qualified (%)",
                            SEC_Management_pc ~ "Socio-economic Class - Senior Management (%)"
-                    #       SEC_Lower_supervisory_routine_pc ~ "Socio-economic Class - Lower Supervisory / Routine Occupations (%)"
                            )) %>%
-#  bold_labels() %>%
-#  add_overall() %>%
   modify_header(label ~ "Variable" )%>%
-#  italicize_levels() %>%
-#  modify_caption("Table 1. Summary Statistics for Greater Manchester Combined Authority (GMCA) at Lower Super Output Area (LSOA) Level") %>%
   modify_footnote(everything() ~ NA) ) %>%
   modify_header(stat_0 ~ "Mean (Inter-quartile Range)") %>%
-    
-  as.data.frame() %>%
-  flextable() %>%
-    set_table_properties(layout = "autofit",
-                         align = "center") )
+      as.data.frame() %>%
+      flextable() %>%
+      set_table_properties(layout = "autofit",
+                           align = "center") )
   
 # Create a Word document
 doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Descrp_table)
 # Save the Word document
-print(doc, target = "../Final_Report/descriptive_table.docx")
+print(doc, target = "Final_Report/descriptive_table.docx")
 
 # Calculate higher-level unemployment rates
 Overall_unemp_rate <- round((sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100),2)
