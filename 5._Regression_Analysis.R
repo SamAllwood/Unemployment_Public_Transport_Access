@@ -1,5 +1,6 @@
+## Script for fixed effects regression analysis and instrumental variables
+## And summary tables for final report.
 # 1. Setup ----------------------------------------------------------------
-
 library(tidyverse)
 library(knitr)
 library(mapview)
@@ -25,7 +26,6 @@ library(stats)
 library(gtsummary)
 library(stargazer)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 # 2. Load Data ------------------------------------------------------------
 MANCH_dataset_full <- read_csv("Data/MANCH_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
@@ -97,6 +97,7 @@ MANCH_data_regress <- MANCH_pop_regress %>%
          MSOA21CD = as.factor(MSOA21CD),
          PT_Job_Access_Index_Demand = as.numeric(PT_Job_Access_Index_Demand)
          )
+
 # GMCA Boundary + buffer
 Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
@@ -110,7 +111,7 @@ LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
-
+## Tidy up districts with overlapping boundaries manually
 MANCH_data_regress$District <- 
   ifelse(MANCH_data_regress$TownNamed=="Suburb",
          MANCH_data_regress$LAD22CD,
@@ -125,12 +126,10 @@ MANCH_data_regress <- MANCH_data_regress %>%
          District = ifelse(LSOA_Code == "E01005157", "E08000009", District),
          )
 
-
 count(MANCH_data_regress %>% distinct(LSOA_Code))
 MANCH_districts_joined <- MANCH_data_regress %>% distinct(LSOA_Code, .keep_all=TRUE) %>%
   group_by(District) %>%
   summarize(geometry = st_union(geometry.x))
-#mapview(MANCH_districts_joined) 
 
 # Plot fixed effect areas with outlines only 
 (FE_boundaries <- MANCH_districts_joined %>%
@@ -142,6 +141,9 @@ MANCH_districts_joined <- MANCH_data_regress %>% distinct(LSOA_Code, .keep_all=T
 ggsave("Plots/FE_areas.jpeg", plot = FE_boundaries, units = "cm")
 
 # 3. Assess need for multilevel regression --------------------------------
+# Base model (intercept only) is compared with fixed effects at LAD, town-named or combination 
+# of the two geographical areas (which is termed 'district' in this analysis) to see which reduces the variance
+# the most.
 intercept_only <- gls(Unemployment_rate ~1, 
                       data=MANCH_data_regress, 
                       method="ML")
@@ -153,17 +155,23 @@ random_intercept_town <- lme(Unemployment_rate ~1,
                              data=MANCH_data_regress, 
                              random = ~1|TownNamed, 
                              method="ML")
+
 random_intercept_district <- lme(Unemployment_rate ~1, 
                              data=MANCH_data_regress, 
                              random = ~1|District, 
                              method="ML")
+# as an extensions the MSOA level was tested to see if any advantage was inferred, 
+# which it wasn't.
 random_intercept_MSOA <- lme(Unemployment_rate ~1, 
                                  data=MANCH_data_regress, 
                                  random = ~1|MSOA21CD, 
-                                 method="ML")
+                                 method="ML") 
 
+# Comparision:
 anova <- anova(intercept_only, random_intercept_LAD, random_intercept_town, random_intercept_district,random_intercept_MSOA)
-anova_district <- anova(intercept_only, random_intercept_MSOA)
+# Comparison of selected fixed effect level with intercept only to quantify how much benefit is inferred by fixed effects modelling:
+anova_district <- anova(intercept_only, random_intercept_district)
+
 FE_areas <- anova %>% as.data.frame() %>%
   dplyr::select(Model, df, AIC) %>%
   mutate(AIC = round(AIC, 0)) %>%
@@ -176,7 +184,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = FE_areas)
 # Save the Word document
-print(doc, target = "../Final_Report/FE_areas_table.docx")
+print(doc, target = "Final_Report/FE_areas_table.docx")
 
 
 # note BIC has reduced from 8744 to 8393 when allowing the intercept to vary by
@@ -243,17 +251,18 @@ summary_IV2 <- summary(IV_model_2)
 
 # Relationship between endo. var. and IV is significant (p<0.0001) and has a positive relationship
 
-# Scatter plot of relationship between IV and endogenous variable
+# Scatter plot of relationship between endo. var. and IV 
 ggplot(MANCH_data_regress, aes(x=Pop_Dens, y=PT_Job_Access_Index)) + 
   geom_point() + 
   geom_smooth(method="lm")
 # IV is significant (p<0.0001) and has a positive relationship with endogenous variable
-#Correlation coefficient for IV and endog. var.
+# Correlation coefficient for IV and endog. var.
 (correlation_IV <- cor(MANCH_data_regress$PT_Job_Access_Index, MANCH_data_regress$Pop_Dens,
   method="pearson"))
-# IV is strongly correlated with endogenous variable (cor=0.47) so is a strong instrument
+# IV is strongly correlated with endogenous variable (cor=0.47) 
 
 # Scatter plot and correlation of No-car rate and SEC: management rate
+# I.e. second endogenous variable and second IV
 ggplot(MANCH_data_regress, aes(x=No_car_rate, y=SEC_Management_pc)) + 
   geom_point() + 
   geom_smooth(method="lm")
@@ -285,29 +294,21 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Ins_strength)
 # Save the Word document
-print(doc, target = "../Final_Report/Ins_strength.docx")
+print(doc, target = "Final_Report/Ins_strength.docx")
 
 # FE model (felm)
 FE_Model <- felm(Unemployment_rate ~ PT_Job_Access_Index +
                       No_car_rate +
-                      #                 Traveltime_empcent +
-                      #                TravelTime_Jobcentre + 
                       White_percent + 
                       Single_parent_household_rate + 
-                      Low_qual_percent #+
-                    #        SEC_Management_pc + 
-                    #    SEC_Lower_supervisory_routine_pc
+                      Low_qual_percent 
                     | District | 0 | 0, MANCH_data_regress)
 summary(FE_Model)
 FE_Model_MSOA <- felm(Unemployment_rate ~ PT_Job_Access_Index +
                    No_car_rate +
-                   #                 Traveltime_empcent +
-                   #                TravelTime_Jobcentre + 
                    White_percent + 
                    Single_parent_household_rate + 
-                   Low_qual_percent #+
-                 #        SEC_Management_pc + 
-                 #    SEC_Lower_supervisory_routine_pc
+                   Low_qual_percent 
                  | MSOA21CD | 0 | 0, MANCH_data_regress)
 summary(FE_Model_MSOA)
 
@@ -316,37 +317,25 @@ summary(FE_Model_MSOA)
 # FE_LL model (felm)
 FE_LL_Model <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                    No_car_rate +
-  #                 Traveltime_empcent +
-   #                TravelTime_Jobcentre + 
                    White_percent + 
                    Single_parent_household_rate + 
-                   Low_qual_percent #+
-           #        SEC_Management_pc + 
-               #    SEC_Lower_supervisory_routine_pc
+                   Low_qual_percent 
                | District | 0 | 0, MANCH_data_regress)
 summary(FE_LL_Model)
 
 FE_LL_Model_demand <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index_Demand +
                       No_car_rate +
-                      #                 Traveltime_empcent +
-                      #                TravelTime_Jobcentre + 
                       White_percent + 
                       Single_parent_household_rate + 
-                      Low_qual_percent #+
-                    #        SEC_Management_pc + 
-                    #    SEC_Lower_supervisory_routine_pc
+                      Low_qual_percent 
                     | District | 0 | 0, MANCH_data_regress)
 summary(FE_LL_Model_demand)
 
 FE_LL_Model_MSOA <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                       No_car_rate +
-                      #                 Traveltime_empcent +
-                      #                TravelTime_Jobcentre + 
                       White_percent + 
                       Single_parent_household_rate + 
-                      Low_qual_percent #+
-                    #        SEC_Management_pc + 
-                    #    SEC_Lower_supervisory_routine_pc
+                      Low_qual_percent 
                     | MSOA21CD | 0 | 0, MANCH_data_regress)
 summary(FE_LL_Model_MSOA)
 
@@ -354,31 +343,24 @@ coeftest(FE_LL_Model, vcov = vcovHC(FE_LL_Model, type = 'HC0')) # presenting rob
 
 # FE_LL model with IVs
 FE_LL_Model_IV <- felm(log(Unemployment_rate) ~ 
-       #               No_car_rate +
-      #                      Traveltime_empcent +
-     #                       TravelTime_Jobcentre +
                             White_percent + 
                             Single_parent_household_rate + 
-                            Low_qual_percent # +
-              #               SEC_Management_pc #+ 
-                 #     SEC_Lower_supervisory_routine_pc
+                            Low_qual_percent 
                            | District 
                            | (PT_Job_Access_Index+ No_car_rate ~ Pop_Dens+SEC_Management_pc) 
                            | 0, MANCH_data_regress)
 summary(FE_LL_Model_IV)
-# coeftest(FE_LL_Model_IV, vcov = vcovHC(FE_LL_Model_IV, type = 'HC0')) # apply robust standard errors,doesn't work
+# coeftest(FE_LL_Model_IV, vcov = vcovHC(FE_LL_Model_IV, type = 'HC0')) # apply robust standard errors, doesn't work
 
-# Check IV regression manually - note standard error (and hence p-values) are not calculated correctly this way
-# First stage: Regress PTJA on the instrumental variable and other exogenous variables, don't know how to do this for 2 IVs
+# Check IV regression manually - note standard errors (and hence p-values) are not calculated correctly this way
+# First stage: Regress PTJA on the instrumental variable and other exogenous variables, 
+# don't know how to do this for 2 IVs but did it for one IV to reassure myself that the calculations were doing 
+# what I expected them to do.
 first_stage_pop <- lm(PT_Job_Access_Index ~ Pop_Dens + 
-                               #        No_car_rate + 
-            #                            Traveltime_empcent +
-          #                             TravelTime_Jobcentre +
+                                        No_car_rate + 
                                         White_percent + 
                                         Single_parent_household_rate + 
                                         Low_qual_percent +
-                          #             SEC_Management_pc + 
-                          #             SEC_Lower_supervisory_routine_pc+
                                        District, 
                                data = MANCH_data_regress)
 
@@ -386,13 +368,9 @@ MANCH_data_regress$PTJA_hat <- predict(first_stage_pop)
 
 first_stage_manage <- lm(No_car_rate ~ #PT_Job_Access_Index + 
                                       SEC_Upper_Management_pc + 
-                        #              Traveltime_empcent +
-                        #            TravelTime_Jobcentre +
                                       White_percent + 
                                       Single_parent_household_rate + 
                                       Low_qual_percent +
-                        #             SEC_Management_pc + 
-                        #             SEC_Lower_supervisory_routine_pc+
                                       District, 
                              data = MANCH_data_regress)
 
@@ -401,13 +379,9 @@ MANCH_data_regress$No_car_hat <- predict(first_stage_manage)
 # including fixed effects for District
 second_stage <- lm(log(Unemployment_rate) ~ PTJA_hat + 
                                          No_car_hat + 
-                      #                 Traveltime_empcent +
-        #                               TravelTime_Jobcentre +
                                        White_percent + 
                                        Single_parent_household_rate + 
                                        Low_qual_percent + 
-           #                            SEC_Management_pc + 
-               #                      SEC_Lower_supervisory_routine_pc+
                                        District, 
                              data = MANCH_data_regress)
 summary(second_stage)
@@ -415,23 +389,15 @@ summary(second_stage)
 # Check a third way - use ivreg package
 ivreg_model <- ivreg(log(Unemployment_rate) ~ PT_Job_Access_Index  +
                        No_car_rate + 
-          #            Traveltime_empcent +
-          #            TravelTime_Jobcentre +
                        White_percent + 
                        Single_parent_household_rate + 
                        Low_qual_percent + 
-          #            SEC_Management_pc + 
-          #              SEC_Lower_supervisory_routine_pc +
                       District
                          | Pop_Dens + 
                           SEC_Management_pc + 
-        #                  Traveltime_empcent +
-         #                 TravelTime_Jobcentre +
                            White_percent + 
                            Single_parent_household_rate + 
                            Low_qual_percent + 
-        #                  SEC_Management_pc +
-        #                   SEC_Lower_supervisory_routine_pc +
                           District,
                     data=MANCH_data_regress)
 (iv_summary <- summary(ivreg_model, diagnostics=TRUE))
@@ -460,53 +426,28 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = IV_diagnostics)
 # Save the Word document
-print(doc, target = "../Final_Report/IV_diag.docx")
+print(doc, target = "Final_Report/IV_diag.docx")
 
 
 # 7. Model Diagnostics ------------------------------------------------
-#Linearity Assumption
-#1	Predictor variables are independent of each other. Check VIFs
+# Linearity Assumption #1	Predictor variables are independent of each other. Check VIFs
 
 vif_initial <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         No_car_rate + 
-         #               Traveltime_empcent +
-         #               TravelTime_Jobcentre +
                         White_percent + 
                         Single_parent_household_rate + 
-                        Low_qual_percent,# + 
-        #                 SEC_Management_pc + 
-        #                SEC_Lower_supervisory_routine_pc
-         # Pop_Dens +
-         # SEC_Upper_Management_pc,
+                        Low_qual_percent,
                       data=MANCH_data_regress))
-vif_final <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
-                                       No_car_rate + 
-                      
-          #                           Traveltime_empcent +
-          #                           TravelTime_Jobcentre +
-                                      White_percent + 
-                                      Single_parent_household_rate + 
-                                      Low_qual_percent,# +
-                    #                  Pop_Dens ,#+
-                                     # SEC_Upper_Management_pc, # + 
-           #                         SEC_Management_pc , 
-            #                          SEC_Lower_supervisory_routine_pc,
-                               data=MANCH_data_regress))
+
 # VIF tabulation
 set_flextable_defaults(digits=2, pct_digits=2, na_str="", width = "1", layout="autofit")
 (vif_ft <- as.data.frame(bind_rows(vif_initial, vif_final)) %>%
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>%
     rename("Public Transport Job Accessibility (PTJA)" = PT_Job_Access_Index,
            "No-car rate (%)" = No_car_rate, 
-     #      "Population Density" = Pop_Dens,
-     #      "Travel time to employment centre (mins)" = Traveltime_empcent,
-     #      "Travel time to jobcentre (mins)" = TravelTime_Jobcentre,
             "White people (%)" = White_percent,
             "Single-parent Households (%)" = Single_parent_household_rate, 
             "Low-qualified rate (%)" = Low_qual_percent) %>% 
-      #      "Socio-economic: Senior Management roles (%)" = SEC_Upper_Management_pc)%>%
-     #      "Socio-economic: Intermediate roles (%)" = SEC_Intermediate_pc, 
-     #      "Socio-economic: Lower supervisory and routine (%)" = SEC_Lower_supervisory_routine_pc,) %>%
   t() %>% as.data.frame() %>%
   rownames_to_column() %>%
   rename("Variable" = "rowname",
@@ -519,43 +460,31 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = vif_ft)
 # Save the Word document
-print(doc, target = "../Final_Report/VIFs.docx")
+print(doc, target = "Final_Report/VIFs.docx")
 
 #2	Correct functional form - good
 # OLS Linear Model for comparison - removed district variable
 Linear_Model <- lm(Unemployment_rate ~ PT_Job_Access_Index +
-                     No_car_rate + 
-        #             Traveltime_empcent +
-        #             TravelTime_Jobcentre +
+                     No_car_rate +
                      White_percent + 
                      Single_parent_household_rate + 
-                     Low_qual_percent, # + 
-        #             SEC_Management_pc + 
- #                    SEC_Lower_supervisory_routine_pc+
-                  #   District,
+                     Low_qual_percent, 
                    data=MANCH_data_regress)
-#Fixed effects (district) introduced and log transform dependent variable
+
+# Fixed effects (district-level) introduced and log transform dependent variable
 LogLinear_Model <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         No_car_rate + 
-        #                Traveltime_empcent +
-        #                TravelTime_Jobcentre +
                         White_percent + 
                         Single_parent_household_rate + 
                         Low_qual_percent + 
-          #               SEC_Management_pc + 
-#                        SEC_Lower_supervisory_routine_pc+
                         District,
                       data=MANCH_data_regress)
 
 FE_Model_lm <- lm(Unemployment_rate ~ PT_Job_Access_Index +
                      No_car_rate + 
-                     #             Traveltime_empcent +
-                     #             TravelTime_Jobcentre +
                      White_percent + 
                      Single_parent_household_rate + 
                      Low_qual_percent + 
-                   #             SEC_Management_pc + 
-                   #                    SEC_Lower_supervisory_routine_pc+
                       District,
                    data=MANCH_data_regress)
 
@@ -581,6 +510,7 @@ FE_LL_Model_IV_df <- data.frame(
   fitted = fitted(ivreg_model),
   resid = residuals(ivreg_model)
 )
+
 # Create Residuals vs Fitted plot for IV model
 FE_IV_resid_plot <- ggplot(data = FE_LL_Model_IV_df, aes(fitted , resid)) +
   geom_point() +
@@ -623,7 +553,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = reset_test)
 # Save the Word document
-print(doc, target = "../Final_Report/RESET.docx")
+print(doc, target = "Final_Report/RESET.docx")
 
 # Plot PTJA and unemployment to visually check for non-linearity - doesn't show anything
 plot <- ggplot(MANCH_data_regress, aes(x=Unemployment_rate, y=PT_Job_Access_Index)) + 
@@ -638,23 +568,15 @@ linearity <- plot + logplot +
 linearity
 Linear_Model_crPlot <- lm(Unemployment_rate ~ PT_Job_Access_Index +
                                No_car_rate + 
-         #                   Traveltime_empcent +
-          #                  TravelTime_Jobcentre +
                                White_percent + 
                                Single_parent_household_rate + 
-                               Low_qual_percent , #+ 
-           #                   SEC_Intermediate_pc, #+ 
-#                              SEC_Lower_supervisory_routine_pc,
+                               Low_qual_percent , 
                              data=MANCH_data_regress)
 LogLinear_Model_crPlot <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         No_car_rate + 
-          #                Traveltime_empcent +
-          #                TravelTime_Jobcentre +
                         White_percent + 
                         Single_parent_household_rate + 
-                        Low_qual_percent, # + 
-         #                 SEC_Intermediate_pc , #+ 
- #                         SEC_Lower_supervisory_routine_pc,
+                        Low_qual_percent, 
                     data=MANCH_data_regress)
 Linear_Model_crPlot %>% car::crPlots(smooth = list(smoother=car::gamLine, k = 10))
 
@@ -693,7 +615,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = BP_test)
 # Save the Word document
-print(doc, target = "../Final_Report/BP_test.docx")
+print(doc, target = "Final_Report/BP_test.docx")
 
 #calculate robust standard errors for model coefficients
 coeftest(LogLinear_Model, vcov = vcovHC(LogLinear_Model, type = 'HC0'))
@@ -801,7 +723,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = moran_table)
 # Save the Word document
-print(doc, target = "../Final_Report/moran_I.docx")
+print(doc, target = "Final_Report/moran_I.docx")
 
 
 # 6. Compare models FE-IV --------------------------------------------------------------
@@ -858,7 +780,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = ft)
 # Save the Word document
-print(doc, target = "../Final_Report/model_comparison.docx")
+print(doc, target = "Final_Report/model_comparison.docx")
 
 # 8. Model Comparisons ------------------------------------------------
 # PTJA coefficients
@@ -912,10 +834,9 @@ stargazer(FE_LL_Model, FE_LL_Model_IV,  type = "html",
                                "Estimated PTJA - IV (x10<sup>3</sup>)",
                                        "No-car rate (%)",
                                "Estimated no-car rate - IV (%)", 
-                              "White people (%)",
-                             "Single-parent households (%)", 
-                            "Low-qualified rate (%)"), 
-   #                       expression("Socio-economic: Intermediate roles (%)"),
+                               "White people (%)",
+                               "Single-parent households (%)", 
+                               "Low-qualified rate (%)"), 
           omit = c("District", "Constant"),
           omit.stat = c("adj.rsq"),
           single.row = TRUE,
@@ -931,5 +852,5 @@ stargazer(FE_LL_Model, FE_LL_Model_IV,  type = "html",
           star.cutoffs = 0.05,
           notes = "Confidence Intervals in parentheses. * = p < 0.05",
           notes.append = FALSE,
-          out = "../Final_Report/Regression_Comparison.html")
+          out = "Final_Report/Regression_Comparison.html")
   
