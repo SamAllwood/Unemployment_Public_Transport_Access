@@ -1,4 +1,5 @@
-
+## Script for map of population density in GMCA
+## Credit to Niloy Biswas on medium and on github. Licensed under Apache 2.0 license.
 # 1. Setup ----------------------------------------------------------------
 
 options(rgl.useNULL = FALSE)
@@ -17,7 +18,6 @@ require(magick)
 require(extrafont)
 library(stars)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "Population_Density_Change.R" script
