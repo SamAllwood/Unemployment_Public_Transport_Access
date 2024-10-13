@@ -1,4 +1,4 @@
-
+## Script for map showing unemployment rate distribution across GMCA by LSOA
 # 1. Setup ----------------------------------------------------------------
 
 library(tidyverse)
@@ -12,9 +12,8 @@ library(classInt)
 library(RColorBrewer)
 library(terra)
 library(ggspatial)
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
-# 2. Load Data ------------------------------------------------------------
 
+# 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
 MANCH_dataset_Unemp <- read_sf("Data/MANCH_dataset_full_sf.shp") %>%
   rename("LSOA_Code" = LSOA_Cd,
@@ -39,6 +38,7 @@ MANCH_dataset_Unemp <- read_sf("Data/MANCH_dataset_full_sf.shp") %>%
   ) %>%
   st_transform(4326)
 sum(MANCH_dataset_Unemp$Economically_active_residents)
+
 # GMCA Boundary + buffer
 Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
@@ -69,8 +69,7 @@ towns_centroids <- read_sf("Data/towns_centroids.shp") #manually updated in 1. T
 towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
-# # Plot Unemployment rate in GMCA ----------------------------------------
-
+## Plot Unemployment rate in GMCA ----------------------------------------
 # Plot Unemployment without quantile breaks
 MANCH_dataset_Unemp %>%
   filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
