@@ -1,5 +1,5 @@
+## Script for Public Transport Job Accessibility distribution across GMCA
 # 1. Setup ----------------------------------------------------------------
-
 library(tidyverse)
 library(knitr)
 library(tidytransit)
@@ -10,10 +10,7 @@ library(ggplot2)
 library(ggspatial)
 library(classInt)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
-
 # 2. Load Data ------------------------------------------------------------
-
 # Load Manchester Geo data from file
 MANCH_dataset_PTJA <- read_sf("Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
@@ -180,14 +177,14 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
             #    colour="black", 
             linewidth = 0.8) +
     geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
- #   geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
-#    geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
-#    geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
-#    geom_label( x=-2.04, y=53.54, label="Oldham", size=3) +
-#    geom_label( x=-2.10, y=53.63, label="Rochdale", size=3) +
-#    geom_label( x=-2.25, y=53.585, label="Bury", size=3) +
-#    geom_label( x=-2.483, y=53.58, label="Bolton", size=3) +
-#    geom_label( x=-2.58, y=53.54, label="Wigan", size=3) +
+    geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
+    geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
+    geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
+    geom_label( x=-2.04, y=53.54, label="Oldham", size=3) +
+    geom_label( x=-2.10, y=53.63, label="Rochdale", size=3) +
+    geom_label( x=-2.25, y=53.585, label="Bury", size=3) +
+    geom_label( x=-2.483, y=53.58, label="Bolton", size=3) +
+    geom_label( x=-2.58, y=53.54, label="Wigan", size=3) +
     scale_color_manual(values = line_colours)+
     annotation_north_arrow()+
     annotation_scale(location = "bl",
@@ -195,4 +192,4 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
                      pad_y = unit(0, "cm"))+
     theme_void())
 
-ggsave(file = "Plots/PTJA_D.jpeg", device = "jpeg", plot = PTJA_D)
+ggsave(file = "Images/PTJA_D.jpeg", device = "jpeg", plot = PTJA_D)
