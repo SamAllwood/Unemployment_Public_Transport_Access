@@ -1,4 +1,4 @@
-
+## Script for map showing travel time to closest employment centre (or major town or city) across GMCA
 # 1. Setup ----------------------------------------------------------------
 
 library(tidyverse)
@@ -8,8 +8,6 @@ library(mapview)
 library(ggmap)
 library(sf)
 library(ggplot2)
-
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 
 # 2. Load Data ------------------------------------------------------------
 MANCH_dataset_full_sf <- read_sf("Data/MANCH_dataset_full_sf.shp") %>%
@@ -59,7 +57,7 @@ towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bo
   st_transform(4326)
 
 # Calculate UBDC estimates ------------------------------------------------
-
+# Note these are only used to calculate percentages of people within 45mins of closest town centre.
 # Calculate UBDC estimates of time to employment centres
 UBDC_access_cities <- read_csv("Data/access_cities_pt.csv") %>%
   mutate(nearest_main_bua = as.numeric(nearest_main_bua),
