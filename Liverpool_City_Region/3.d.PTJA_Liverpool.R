@@ -158,7 +158,7 @@ labels_PTJA_D <- c("Lowest PTJA-D Quintile","","","","Highest PTJA-D Quintile")
     annotation_north_arrow()+
     annotation_scale(location = "bl",
                      pad_x = unit(2.5, "cm"),
-                     pad_y = unit(0, "cm"))+
+                     pad_y = unit(0, "cm")) +
     theme_void())
 
 ggsave(file = "3.Liverpool_Maps/PTJA_D.jpeg", device = "jpeg", plot = PTJA_D)
