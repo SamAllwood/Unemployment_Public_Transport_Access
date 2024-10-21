@@ -12,7 +12,7 @@ The scripts which start with '3' are for creating the distribution maps of GMCA,
 </div>
 
 ### Population Density Distribution across GMCA:
-![Pop_dens](Greater_Manchester_Combined_Authority/Images/Manch_Pop.png)
+<img src="Greater_Manchester_Combined_Authority/Images/Manch_Pop.png" alt="Pop_dens" width="400">
 
 ### Project Dataset Schematic:
-![Datasets](Greater_Manchester_Combined_Authority/Images/Dataset_diagram.jpg)
+<img src="Greater_Manchester_Combined_Authority/Images/Dataset_diagram.jpg" alt="Datasets" width="600">
