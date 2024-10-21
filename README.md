@@ -5,10 +5,10 @@ Public transport job accessibility distribution for an area calculated by summin
 
 The scripts which start with '3' are for creating the distribution maps of GMCA, and there is also a presentation included in the final report directory. 
 
+<img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
 ![PTJDA-D](Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg)
 
 ### Population Density Distribution across GMCA:
-
 ![Pop_dens](Greater_Manchester_Combined_Authority/Images/Manch_Pop.png)
 
 ### Project Dataset Schematic:
