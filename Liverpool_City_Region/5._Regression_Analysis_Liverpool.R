@@ -1,5 +1,4 @@
 # 1. Setup ----------------------------------------------------------------
-
 library(tidyverse)
 library(knitr)
 library(mapview)
@@ -25,9 +24,8 @@ library(stats)
 library(gtsummary)
 library(stargazer)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
 # 2. Load Data ------------------------------------------------------------
-MANCH_dataset_full <- read_csv("Data/MANCH_dataset_full.csv") %>%
+LCR_dataset_full <- read_csv("Data/LCR_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
             "Level_2_qual", 
             "Level_2_qual", 
@@ -43,15 +41,15 @@ MANCH_dataset_full <- read_csv("Data/MANCH_dataset_full.csv") %>%
          "Townsuburb" = "twnsbrb",
          "TownNamed" = "TCITY15") 
 
-MANCH_pop_regress <- read_sf("Data/MANCH_population.shp") %>%
+LCR_pop_regress <- read_sf("Data/LCR_population.shp") %>%
   st_transform(4326) %>%
   rename("LSOA_Code" = "LSOA21C",
          "Pop_Dens" = "P_2021_",
          "Population" = "U_P_202") %>%
     dplyr::select(LSOA_Code, Pop_Dens, Population, geometry)
 
-MANCH_data_regress <- MANCH_pop_regress %>%
-  left_join(MANCH_dataset_full, by="LSOA_Code", keep=FALSE) %>%
+LCR_data_regress <- LCR_pop_regress %>%
+  left_join(LCR_dataset_full, by="LSOA_Code", keep=FALSE) %>%
   dplyr::select("LSOA_Code", 
          "LSOA_Name", 
          "LAD22CD",
@@ -97,25 +95,25 @@ MANCH_data_regress <- MANCH_pop_regress %>%
          MSOA21CD = as.factor(MSOA21CD),
          PT_Job_Access_Index_Demand = as.numeric(PT_Job_Access_Index_Demand)
          )
-# GMCA Boundary + buffer
+# LCR Boundary + buffer
 Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
-GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
+LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
-GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
+LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=25)
 
 # Read Local Authority District (LAD) boundaries
 LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
-# Filter LADs within GMCA
-LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
+# Filter LADs within LCR
+LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 
-MANCH_data_regress$District <- 
-  ifelse(MANCH_data_regress$TownNamed=="Suburb",
-         MANCH_data_regress$LAD22CD,
-         MANCH_data_regress$TownNamed) 
-MANCH_data_regress <- MANCH_data_regress %>%
+LCR_data_regress$District <- 
+  ifelse(LCR_data_regress$TownNamed=="Suburb",
+         LCR_data_regress$LAD22CD,
+         LCR_data_regress$TownNamed) 
+LCR_data_regress <- LCR_data_regress %>%
   mutate(District = ifelse(LSOA_Code == "E01004789", "E08000002", District),
          District = ifelse(LSOA_Code == "E01005386", "E08000008", District),
          District = ifelse(LSOA_Code == "E01005440", "E08000008", District),
@@ -126,14 +124,14 @@ MANCH_data_regress <- MANCH_data_regress %>%
          )
 
 
-count(MANCH_data_regress %>% distinct(LSOA_Code))
-MANCH_districts_joined <- MANCH_data_regress %>% distinct(LSOA_Code, .keep_all=TRUE) %>%
+count(LCR_data_regress %>% distinct(LSOA_Code))
+LCR_districts_joined <- LCR_data_regress %>% distinct(LSOA_Code, .keep_all=TRUE) %>%
   group_by(District) %>%
   summarize(geometry = st_union(geometry.x))
-#mapview(MANCH_districts_joined) 
+#mapview(LCR_districts_joined) 
 
 # Plot fixed effect areas with outlines only 
-(FE_boundaries <- MANCH_districts_joined %>%
+(FE_boundaries <- LCR_districts_joined %>%
     ggplot() +
     geom_sf( aes(fill = "yellow"), color = "black", size = 1) + # Add outlines for each District
     labs(title = "Fixed Effect Area Outlines") +
@@ -143,22 +141,22 @@ ggsave("Plots/FE_areas.jpeg", plot = FE_boundaries, units = "cm")
 
 # 3. Assess need for multilevel regression --------------------------------
 intercept_only <- gls(Unemployment_rate ~1, 
-                      data=MANCH_data_regress, 
+                      data=LCR_data_regress, 
                       method="ML")
 random_intercept_LAD <- lme(Unemployment_rate ~1, 
-                             data=MANCH_data_regress, 
+                             data=LCR_data_regress, 
                              random = ~1|LAD22CD, 
                              method="ML")
 random_intercept_town <- lme(Unemployment_rate ~1, 
-                             data=MANCH_data_regress, 
+                             data=LCR_data_regress, 
                              random = ~1|TownNamed, 
                              method="ML")
 random_intercept_district <- lme(Unemployment_rate ~1, 
-                             data=MANCH_data_regress, 
+                             data=LCR_data_regress, 
                              random = ~1|District, 
                              method="ML")
 random_intercept_MSOA <- lme(Unemployment_rate ~1, 
-                                 data=MANCH_data_regress, 
+                                 data=LCR_data_regress, 
                                  random = ~1|MSOA21CD, 
                                  method="ML")
 
@@ -176,7 +174,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = FE_areas)
 # Save the Word document
-print(doc, target = "../Final_Report/FE_areas_table.docx")
+print(doc, target = "FE_areas_table_LCR.docx")
 
 
 # note BIC has reduced from 8744 to 8393 when allowing the intercept to vary by
@@ -189,14 +187,14 @@ print(doc, target = "../Final_Report/FE_areas_table.docx")
 # 4. Multilevel regression ------------------------------------------------
 multilevel_model1 <- lme(Unemployment_rate ~ 
                           PT_Job_Access_Index,  
-                          data=MANCH_data_regress, 
+                          data=LCR_data_regress, 
                         random = ~1|District, 
                         method="ML")
 
 multilevel_model2 <- lme(Unemployment_rate ~ 
                           PT_Job_Access_Index + 
                           No_car_rate, 
-                        data=MANCH_data_regress, 
+                        data=LCR_data_regress, 
                         random = ~1|District, 
                         method="ML")
 
@@ -204,7 +202,7 @@ multilevel_model3 <- lme(Unemployment_rate ~
                           PT_Job_Access_Index + 
                           No_car_rate + 
                           White_percent, 
-                        data=MANCH_data_regress, 
+                        data=LCR_data_regress, 
                         random = ~1|District, 
                         method="ML")
 
@@ -213,7 +211,7 @@ multilevel_model4 <- lme(Unemployment_rate ~
                           No_car_rate + 
                           White_percent + 
                           Single_parent_household_rate,
-                        data=MANCH_data_regress, 
+                        data=LCR_data_regress, 
                         random = ~1|District, 
                         method="ML")
 
@@ -223,7 +221,7 @@ multilevel_model5 <- lme(Unemployment_rate ~
                            White_percent + 
                            Single_parent_household_rate + 
                            Low_qual_percent,
-                         data=MANCH_data_regress, 
+                         data=LCR_data_regress, 
                          random = ~1|District, 
                          method="ML")
 
@@ -235,35 +233,35 @@ anova(intercept_only, random_intercept_district, multilevel_model5)
 
 # 5. Add Instrumental Variable to Fixed effects regression Model ------------------------------
 # IV = Population Density - check for strength of instrument
-IV_model <- lm(PT_Job_Access_Index ~ Pop_Dens, data=MANCH_data_regress)
+IV_model <- lm(PT_Job_Access_Index ~ Pop_Dens, data=LCR_data_regress)
 summary_IV <- summary(IV_model)  
 
-IV_model_2 <- lm(No_car_rate ~ SEC_Management_pc, data=MANCH_data_regress)
+IV_model_2 <- lm(No_car_rate ~ SEC_Management_pc, data=LCR_data_regress)
 summary_IV2 <- summary(IV_model_2) 
 
 # Relationship between endo. var. and IV is significant (p<0.0001) and has a positive relationship
 
 # Scatter plot of relationship between IV and endogenous variable
-ggplot(MANCH_data_regress, aes(x=Pop_Dens, y=PT_Job_Access_Index)) + 
+ggplot(LCR_data_regress, aes(x=Pop_Dens, y=PT_Job_Access_Index)) + 
   geom_point() + 
   geom_smooth(method="lm")
 # IV is significant (p<0.0001) and has a positive relationship with endogenous variable
 #Correlation coefficient for IV and endog. var.
-(correlation_IV <- cor(MANCH_data_regress$PT_Job_Access_Index, MANCH_data_regress$Pop_Dens,
+(correlation_IV <- cor(LCR_data_regress$PT_Job_Access_Index, LCR_data_regress$Pop_Dens,
   method="pearson"))
 # IV is strongly correlated with endogenous variable (cor=0.47) so is a strong instrument
 
 # Scatter plot and correlation of No-car rate and SEC: management rate
-ggplot(MANCH_data_regress, aes(x=No_car_rate, y=SEC_Management_pc)) + 
+ggplot(LCR_data_regress, aes(x=No_car_rate, y=SEC_Management_pc)) + 
   geom_point() + 
   geom_smooth(method="lm")
-correlation_IV2 <- cor(MANCH_data_regress$No_car_rate, MANCH_data_regress$SEC_Management_pc,
+correlation_IV2 <- cor(LCR_data_regress$No_car_rate, LCR_data_regress$SEC_Management_pc,
     method="pearson")
 # Scatter plot of SEC: upper management rate and SEC: long term unemployed
-ggplot(MANCH_data_regress, aes(x=SEC_Upper_Management_pc, y=SEC_long_term_unemployed_pc)) + 
+ggplot(LCR_data_regress, aes(x=SEC_Upper_Management_pc, y=SEC_long_term_unemployed_pc)) + 
   geom_point() + 
   geom_smooth(method="lm")
-correlation_IV_endog <- cor(MANCH_data_regress$SEC_long_term_unemployed_pc, MANCH_data_regress$SEC_Upper_Management_pc,
+correlation_IV_endog <- cor(LCR_data_regress$SEC_long_term_unemployed_pc, LCR_data_regress$SEC_Upper_Management_pc,
                        method="pearson")
 
 # Instrument Strength table
@@ -285,7 +283,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Ins_strength)
 # Save the Word document
-print(doc, target = "../Final_Report/Ins_strength.docx")
+print(doc, target = "Ins_strength_LCR.docx")
 
 # FE model (felm)
 FE_Model <- felm(Unemployment_rate ~ PT_Job_Access_Index +
@@ -297,7 +295,7 @@ FE_Model <- felm(Unemployment_rate ~ PT_Job_Access_Index +
                       Low_qual_percent #+
                     #        SEC_Management_pc + 
                     #    SEC_Lower_supervisory_routine_pc
-                    | District | 0 | 0, MANCH_data_regress)
+                    | District | 0 | 0, LCR_data_regress)
 summary(FE_Model)
 FE_Model_MSOA <- felm(Unemployment_rate ~ PT_Job_Access_Index +
                    No_car_rate +
@@ -308,7 +306,7 @@ FE_Model_MSOA <- felm(Unemployment_rate ~ PT_Job_Access_Index +
                    Low_qual_percent #+
                  #        SEC_Management_pc + 
                  #    SEC_Lower_supervisory_routine_pc
-                 | MSOA21CD | 0 | 0, MANCH_data_regress)
+                 | MSOA21CD | 0 | 0, LCR_data_regress)
 summary(FE_Model_MSOA)
 
  # presenting robust standard errors
@@ -323,7 +321,7 @@ FE_LL_Model <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                    Low_qual_percent #+
            #        SEC_Management_pc + 
                #    SEC_Lower_supervisory_routine_pc
-               | District | 0 | 0, MANCH_data_regress)
+               | District | 0 | 0, LCR_data_regress)
 summary(FE_LL_Model)
 
 FE_LL_Model_demand <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index_Demand +
@@ -335,7 +333,7 @@ FE_LL_Model_demand <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index_Demand +
                       Low_qual_percent #+
                     #        SEC_Management_pc + 
                     #    SEC_Lower_supervisory_routine_pc
-                    | District | 0 | 0, MANCH_data_regress)
+                    | District | 0 | 0, LCR_data_regress)
 summary(FE_LL_Model_demand)
 
 FE_LL_Model_MSOA <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index +
@@ -347,7 +345,7 @@ FE_LL_Model_MSOA <- felm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                       Low_qual_percent #+
                     #        SEC_Management_pc + 
                     #    SEC_Lower_supervisory_routine_pc
-                    | MSOA21CD | 0 | 0, MANCH_data_regress)
+                    | MSOA21CD | 0 | 0, LCR_data_regress)
 summary(FE_LL_Model_MSOA)
 
 coeftest(FE_LL_Model, vcov = vcovHC(FE_LL_Model, type = 'HC0')) # presenting robust standard errors
@@ -364,7 +362,7 @@ FE_LL_Model_IV <- felm(log(Unemployment_rate) ~
                  #     SEC_Lower_supervisory_routine_pc
                            | District 
                            | (PT_Job_Access_Index+ No_car_rate ~ Pop_Dens+SEC_Management_pc) 
-                           | 0, MANCH_data_regress)
+                           | 0, LCR_data_regress)
 summary(FE_LL_Model_IV)
 # coeftest(FE_LL_Model_IV, vcov = vcovHC(FE_LL_Model_IV, type = 'HC0')) # apply robust standard errors,doesn't work
 
@@ -380,9 +378,9 @@ first_stage_pop <- lm(PT_Job_Access_Index ~ Pop_Dens +
                           #             SEC_Management_pc + 
                           #             SEC_Lower_supervisory_routine_pc+
                                        District, 
-                               data = MANCH_data_regress)
+                               data = LCR_data_regress)
 
-MANCH_data_regress$PTJA_hat <- predict(first_stage_pop)
+LCR_data_regress$PTJA_hat <- predict(first_stage_pop)
 
 first_stage_manage <- lm(No_car_rate ~ #PT_Job_Access_Index + 
                                       SEC_Upper_Management_pc + 
@@ -394,9 +392,9 @@ first_stage_manage <- lm(No_car_rate ~ #PT_Job_Access_Index +
                         #             SEC_Management_pc + 
                         #             SEC_Lower_supervisory_routine_pc+
                                       District, 
-                             data = MANCH_data_regress)
+                             data = LCR_data_regress)
 
-MANCH_data_regress$No_car_hat <- predict(first_stage_manage)
+LCR_data_regress$No_car_hat <- predict(first_stage_manage)
 # Second stage: Regress Unemployment_rate on the predicted values of PTJA, no-car rate and other exogenous variables, 
 # including fixed effects for District
 second_stage <- lm(log(Unemployment_rate) ~ PTJA_hat + 
@@ -409,7 +407,7 @@ second_stage <- lm(log(Unemployment_rate) ~ PTJA_hat +
            #                            SEC_Management_pc + 
                #                      SEC_Lower_supervisory_routine_pc+
                                        District, 
-                             data = MANCH_data_regress)
+                             data = LCR_data_regress)
 summary(second_stage)
 
 # Check a third way - use ivreg package
@@ -433,7 +431,7 @@ ivreg_model <- ivreg(log(Unemployment_rate) ~ PT_Job_Access_Index  +
         #                  SEC_Management_pc +
         #                   SEC_Lower_supervisory_routine_pc +
                           District,
-                    data=MANCH_data_regress)
+                    data=LCR_data_regress)
 (iv_summary <- summary(ivreg_model, diagnostics=TRUE))
 
 wu_hausman_stat <- iv_summary$diagnostics["Wu-Hausman", "statistic"]
@@ -460,7 +458,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = IV_diagnostics)
 # Save the Word document
-print(doc, target = "../Final_Report/IV_diag.docx")
+print(doc, target = "IV_diag_LCR.docx")
 
 
 # 7. Model Diagnostics ------------------------------------------------
@@ -478,7 +476,7 @@ vif_initial <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
         #                SEC_Lower_supervisory_routine_pc
          # Pop_Dens +
          # SEC_Upper_Management_pc,
-                      data=MANCH_data_regress))
+                      data=LCR_data_regress))
 vif_final <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                                        No_car_rate + 
                       
@@ -491,7 +489,7 @@ vif_final <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                                      # SEC_Upper_Management_pc, # + 
            #                         SEC_Management_pc , 
             #                          SEC_Lower_supervisory_routine_pc,
-                               data=MANCH_data_regress))
+                               data=LCR_data_regress))
 # VIF tabulation
 set_flextable_defaults(digits=2, pct_digits=2, na_str="", width = "1", layout="autofit")
 (vif_ft <- as.data.frame(bind_rows(vif_initial, vif_final)) %>%
@@ -519,7 +517,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = vif_ft)
 # Save the Word document
-print(doc, target = "../Final_Report/VIFs.docx")
+print(doc, target = "VIFs_LCR.docx")
 
 #2	Correct functional form - good
 # OLS Linear Model for comparison - removed district variable
@@ -533,7 +531,7 @@ Linear_Model <- lm(Unemployment_rate ~ PT_Job_Access_Index +
         #             SEC_Management_pc + 
  #                    SEC_Lower_supervisory_routine_pc+
                   #   District,
-                   data=MANCH_data_regress)
+                   data=LCR_data_regress)
 #Fixed effects (district) introduced and log transform dependent variable
 LogLinear_Model <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         No_car_rate + 
@@ -545,7 +543,7 @@ LogLinear_Model <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
           #               SEC_Management_pc + 
 #                        SEC_Lower_supervisory_routine_pc+
                         District,
-                      data=MANCH_data_regress)
+                      data=LCR_data_regress)
 
 FE_Model_lm <- lm(Unemployment_rate ~ PT_Job_Access_Index +
                      No_car_rate + 
@@ -557,7 +555,7 @@ FE_Model_lm <- lm(Unemployment_rate ~ PT_Job_Access_Index +
                    #             SEC_Management_pc + 
                    #                    SEC_Lower_supervisory_routine_pc+
                       District,
-                   data=MANCH_data_regress)
+                   data=LCR_data_regress)
 
 # Create Residuals vs Fitted plot for Linear_Model
 linear_resid_plot <- ggplot(data = FE_Model_lm, aes(.fitted, .resid)) +
@@ -623,13 +621,13 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = reset_test)
 # Save the Word document
-print(doc, target = "../Final_Report/RESET.docx")
+print(doc, target = "RESET_LCR.docx")
 
 # Plot PTJA and unemployment to visually check for non-linearity - doesn't show anything
-plot <- ggplot(MANCH_data_regress, aes(x=Unemployment_rate, y=PT_Job_Access_Index)) + 
+plot <- ggplot(LCR_data_regress, aes(x=Unemployment_rate, y=PT_Job_Access_Index)) + 
   geom_point() + 
   geom_smooth(method="lm")
-logplot <- ggplot(MANCH_data_regress, aes(x=log(Unemployment_rate), y=PT_Job_Access_Index)) + 
+logplot <- ggplot(LCR_data_regress, aes(x=log(Unemployment_rate), y=PT_Job_Access_Index)) + 
   geom_point() + 
   geom_smooth(method="lm")
 linearity <- plot + logplot +
@@ -645,7 +643,7 @@ Linear_Model_crPlot <- lm(Unemployment_rate ~ PT_Job_Access_Index +
                                Low_qual_percent , #+ 
            #                   SEC_Intermediate_pc, #+ 
 #                              SEC_Lower_supervisory_routine_pc,
-                             data=MANCH_data_regress)
+                             data=LCR_data_regress)
 LogLinear_Model_crPlot <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         No_car_rate + 
           #                Traveltime_empcent +
@@ -655,7 +653,7 @@ LogLinear_Model_crPlot <- lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
                         Low_qual_percent, # + 
          #                 SEC_Intermediate_pc , #+ 
  #                         SEC_Lower_supervisory_routine_pc,
-                    data=MANCH_data_regress)
+                    data=LCR_data_regress)
 Linear_Model_crPlot %>% car::crPlots(smooth = list(smoother=car::gamLine, k = 10))
 
 LogLinear_Model_crPlot %>%car::crPlots(ylab="log(Unemp. Rate)",
@@ -693,7 +691,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = BP_test)
 # Save the Word document
-print(doc, target = "../Final_Report/BP_test.docx")
+print(doc, target = "BP_test_LCR.docx")
 
 #calculate robust standard errors for model coefficients
 coeftest(LogLinear_Model, vcov = vcovHC(LogLinear_Model, type = 'HC0'))
@@ -728,24 +726,24 @@ LogLinear_Model  %>%
 
 #8 Spatial Autocorrelation - Calculate Moran's I statistic
 # Calculate coordinates of centroids of LSOAs
-centroids <- st_centroid(MANCH_data_regress)
+centroids <- st_centroid(LCR_data_regress)
 coords <- st_coordinates(centroids)
 #spatial weights matrix
 nb <- knn2nb(knearneigh(coords, k=8)) # k = 4 is an example, adjust as needed
 listw <- nb2listw(nb, style = "W")
 # create binary continuity spatial weights matrix
-neighbors <- poly2nb(MANCH_data_regress)
+neighbors <- poly2nb(LCR_data_regress)
 # Convert the neighbors list to a binary spatial weights list
 binary_weights <- nb2listw(neighbors, style = "B")
 
 # Calculate Moran's I statistic on unemployment rates - Moran's stat 0.5
-(moran_unemp <- moran.test(MANCH_data_regress$Unemployment_rate, binary_weights))
+(moran_unemp <- moran.test(LCR_data_regress$Unemployment_rate, binary_weights))
 moran_I_unemp <- round(moran_unemp$estimate[1],3)
 moran_expect_unemp <- round(moran_unemp$estimate[2],3)
 moran_p_unemp <- round(moran_unemp$p.value,22)
 
 # Calculate Moran's I for PTJA
-(moran_PTJA <- moran.test(MANCH_data_regress$PT_Job_Access_Index, binary_weights))
+(moran_PTJA <- moran.test(LCR_data_regress$PT_Job_Access_Index, binary_weights))
 moran_I_PTJA <- round(moran_PTJA$estimate[1],3)
 moran_PTJA_expect <- round(moran_PTJA$estimate[2],3)
 moran_p_PTJA <- round(moran_PTJA$p.value,22)
@@ -801,7 +799,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = moran_table)
 # Save the Word document
-print(doc, target = "../Final_Report/moran_I.docx")
+print(doc, target = "moran_I_LCR.docx")
 
 
 # 6. Compare models FE-IV --------------------------------------------------------------
@@ -858,7 +856,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = ft)
 # Save the Word document
-print(doc, target = "../Final_Report/model_comparison.docx")
+print(doc, target = "model_comparison_LCR.docx")
 
 # 8. Model Comparisons ------------------------------------------------
 # PTJA coefficients
@@ -931,5 +929,5 @@ stargazer(FE_LL_Model, FE_LL_Model_IV,  type = "html",
           star.cutoffs = 0.05,
           notes = "Confidence Intervals in parentheses. * = p < 0.05",
           notes.append = FALSE,
-          out = "../Final_Report/Regression_Comparison.html")
+          out = "Regression_Comparison.html")
   
