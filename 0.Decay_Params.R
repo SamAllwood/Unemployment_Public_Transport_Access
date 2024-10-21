@@ -14,9 +14,9 @@ library(MASS)
 # Read datasets. These are too large for github so will need downloading directly 
 # from the UK Data Service website.
 
-individual <- read_tsv("individual_eul_2002-2022.tab") 
-trip <- read_tsv("trip_eul_2002-2022.tab")
-household <- read_tsv("household_eul_2002-2022.tab")
+individual <- read_tsv("Data/individual_eul_2002-2022.tab") 
+trip <- read_tsv("Data/trip_eul_2002-2022.tab")
+household <- read_tsv("Data/household_eul_2002-2022.tab")
 
 #create subsets of interesting variables
 ind_subset <- dplyr::select(individual,
@@ -72,7 +72,7 @@ Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePerc
 # Create a Word document with table
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = Commuting)
-print(doc, target = "../Final_Report/Commuting.docx")
+print(doc, target = "Final_Report/Commuting.docx")
 
 # Some summary figures
 number_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% nrow()
