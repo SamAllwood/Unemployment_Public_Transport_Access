@@ -8,11 +8,11 @@ All scripts used for the project are in the folders
 ### Public Transport Job Accessibility (Demand-adjusted)
 <div style="display: flex; flex-direction: row;">
   <figure style="margin-right: 20px; text-align: center;">
-    <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400" style="border: 2px solid black;">
-    <figcaption>Greater Manchester PTJA_D</figcaption>
+    <img src="Greater_Manchester_Combined_Authority/Images/PTJA-D.jpeg" alt="PTJDA-D" width="400" style="border: 2px solid black;">
+    <figcaption>Greater Manchester PTJA-D</figcaption>
   </figure>
   <figure style="text-align: center;">
-    <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="600" style="border: 2px solid black;">
+    <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400" style="border: 2px solid black;">
     <figcaption>Liverpool City Region PTJA-D</figcaption>
   </figure>
 </div>
