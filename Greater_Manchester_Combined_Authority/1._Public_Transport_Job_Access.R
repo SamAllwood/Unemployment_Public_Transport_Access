@@ -18,7 +18,7 @@ options(timeout = 1000)
 # 2. Load and Filter Datasets ------------------------------------------------------------
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("Data/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -28,14 +28,14 @@ buffered_GMCA_boundary <- st_buffer(GMCA_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("Data/LAD_DEC_2021_GB_BFC.shp") %>% # too large for github but available from ONS Geoportal
+LADs <- read_sf("../Data/LAD_DEC_2021_GB_BFC.shp") %>% # too large for github but available from ONS Geoportal
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Read LSOA population-weighted centroids
-lsoas <- st_read("Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
+lsoas <- st_read("../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
   st_transform(4326) %>%
   st_make_valid() %>%
   rename(id = LSOA21CD) 
@@ -47,7 +47,7 @@ lsoa_PWC_within_GMCA_buffer <- lsoas %>%
   filter(as.vector(st_within(., buffered_GMCA_boundary, sparse = FALSE))) 
 
 # Read LSOA boundaries (too large for github but available on ONS Geoportal)
-lsoa_boundaries <- st_read("Data/LSOA_2021_EW_BFC_V8.shp") %>% 
+lsoa_boundaries <- st_read("../Data/LSOA_2021_EW_BFC_V8.shp") %>% 
   st_transform(4326) %>%
   st_make_valid() 
 # Calculate LSOA area
@@ -62,7 +62,7 @@ lsoa_boundaries_within_GMCA <- lsoa_boundaries[st_within(lsoa_boundaries,
                                                          GMCA_bound_small_buffer, 
                                                          sparse = FALSE), ]
 # Read Towns and City boundaries
-towns <- st_read("Data/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) %>%
   st_make_valid()
 towns_within_GMCA_buffer <- towns[st_within(towns, buffered_GMCA_boundary, sparse = FALSE), ]
@@ -104,7 +104,7 @@ lsoa_with_town_info_min <- lsoa_with_town_info %>%
   distinct(LSOA21CD, .keep_all=TRUE)
 
 # Employed Residents
-Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Economically active (excluding full-time students)") %>%
@@ -114,16 +114,16 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
 
 # Business Register and Employment Survey (BRES) --------------------------------------------------------------------
 # Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
-BRES <- read_csv("Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
+BRES <- read_csv("../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
   separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
   rename("Employed" = "...2") %>%
   dplyr::select(-c("...3", "...4","...5")) %>%
   na.omit()
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Jobcentre locations
-Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv")
+Jobcentre_plus_geocoded <- read_csv("../Data/Jobcentre_locations_geocoded.csv")
 
 # Specify location of Manchester City Centre - St. Peter's Square
 MAN_CC <- 
@@ -144,7 +144,7 @@ MAN_CC_point <-
 
 # 4. R5R Network Setup -------------------------------------------------------
 # Get input files
-input_files <- list.files("Data/GTFS_Data", 
+input_files <- list.files("../Data/GTFS_Data", 
   recursive = TRUE,
   pattern = 'gtfs\\.zip$|pbf$',
   full.names = TRUE)
@@ -158,7 +158,7 @@ input_files
 
 # Read multi-modal network
 gc() # this setup step requires quite a bit of memory, so best to gc first
-r5r_core <- setup_r5(data_path = "Data/GTFS_Data", 
+r5r_core <- setup_r5(data_path = "../Data/GTFS_Data", 
                      verbose=TRUE,
                      overwrite = FALSE) 
 summary(r5r_core)
@@ -436,5 +436,5 @@ MANCH_dataset <- MANCH_TT_Jobcentre %>%
   left_join(job_access_demand, by = c("LSOA21CD"="id")) 
 
 # Write datasets to shapefiles
-st_write(MANCH_dataset, "Data/MANCH_dataset.shp", append=FALSE)
-st_write(towns_manual_MAN, "Data/towns_centroids.shp", append=FALSE)
+st_write(MANCH_dataset, "../Data/MANCH_dataset.shp", append=FALSE)
+st_write(towns_manual_MAN, "../Data/towns_centroids.shp", append=FALSE)
