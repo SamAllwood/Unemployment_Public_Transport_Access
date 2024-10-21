@@ -8,7 +8,7 @@ All scripts used for the project are in the folders
 ### Public Transport Job Accessibility (Demand-adjusted)
 <div style="display: flex; flex-direction: row;">
   <figure style="margin-right: 20px; text-align: center;">
-    <img src="Greater_Manchester_Combined_Authority/Images/PTJA-D.jpeg" alt="PTJDA-D" width="400" style="border: 2px solid black;">
+    <img src="Greater_Manchester_Combined_Authority/Images/PTJA-D.jpeg" width="400" style="border: 2px solid black;">
     <figcaption>Greater Manchester PTJA-D</figcaption>
   </figure>
   <figure style="text-align: center;">
