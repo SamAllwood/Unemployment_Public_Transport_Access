@@ -12,7 +12,7 @@ library(classInt)
 
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
-MANCH_dataset_PTJA <- read_sf("Data/MANCH_dataset.shp") %>%
+MANCH_dataset_PTJA <- read_sf("../Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
          "LSOA_Name" = "LSOA21N",
          "TravelTime_Jobcentre" = "Tr__J_C",
@@ -29,16 +29,16 @@ MANCH_dataset_PTJA <- read_sf("Data/MANCH_dataset.shp") %>%
          PT_Job_Access_Index_tram = PT_Job_Access_Index_tram - PT_Job_Access_Index_walk) 
 
 # Load Metrolink Shapefile
-Metrolink <- st_read("Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
+Metrolink <- st_read("../Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
 Metrolink$LineName <- "Metrolink"
 # GMCA Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
 
 # Town centres
-towns_centroids <- read_sf("Data/towns_centroids.shp")
+towns_centroids <- read_sf("../Data/towns_centroids.shp")
 towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 

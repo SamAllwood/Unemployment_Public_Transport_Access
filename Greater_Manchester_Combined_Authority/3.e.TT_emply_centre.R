@@ -10,11 +10,10 @@ library(sf)
 library(ggplot2)
 
 # 2. Load Data ------------------------------------------------------------
-MANCH_dataset_full_sf <- read_sf("Data/MANCH_dataset_full_sf.shp") %>%
+MANCH_dataset_full_sf <- read_sf("../Data/MANCH_dataset_full_sf.shp") %>%
     rename("LSOA_Code" = LSOA_Cd,
          "LSOA_Name" = LSOA_Nm,
          "LSOA_Area" = LSOA_Ar,
-         Traveltime_Jobcentre = TrvlT_J,
          "PT_Job_Access_Index" = PT_Jb_A_I,
          "Job_Locations" = Emply_P,
          "Traveltime_empcent" = Trvltm_,
@@ -33,7 +32,7 @@ MANCH_dataset_full_sf <- read_sf("Data/MANCH_dataset_full_sf.shp") %>%
 )
 
 # Read population density shapefile from "Population_Density_Map.R" script
-MAN_pop <- read_sf("Data/MANCH_population.shp") %>%
+MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA21CD" = "LSOA21C",
@@ -43,27 +42,27 @@ MAN_pop <- read_sf("Data/MANCH_population.shp") %>%
   as.data.frame()
 
 # Load Metrolink Shapefile
-Metrolink <- st_read("Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
+Metrolink <- st_read("../Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
 Metrolink$LineName <- "Metrolink"
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
 
-towns_centroids <- read_sf("Data/towns_centroids.shp") #manually updated in 1. TravelTimeMatrix.R
+towns_centroids <- read_sf("../Data/towns_centroids.shp") #manually updated in 1. TravelTimeMatrix.R
 towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Calculate UBDC estimates ------------------------------------------------
 # Note these are only used to calculate percentages of people within 45mins of closest town centre.
 # Calculate UBDC estimates of time to employment centres
-UBDC_access_cities <- read_csv("Data/access_cities_pt.csv") %>%
+UBDC_access_cities <- read_csv("../Data/access_cities_pt.csv") %>%
   mutate(nearest_main_bua = as.numeric(nearest_main_bua),
          nearest_sub_bua = as.numeric(nearest_sub_bua))
 # Load population data
-UK_pop <- read_csv("Data/Census2021_UsualPopulation.csv", skip=6, col_names = TRUE) %>%
+UK_pop <- read_csv("../Data/Census2021_UsualPopulation.csv", skip=6, col_names = TRUE) %>%
   drop_na() %>%
   rename("Pop_2021" = "2021",
          "LSOA21CD" = "2021 super output area - lower layer") %>%

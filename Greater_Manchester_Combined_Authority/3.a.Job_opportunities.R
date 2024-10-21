@@ -12,28 +12,27 @@ library(ggspatial)
 
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
-MANCH_dataset_jobs <- read_sf("Data/MANCH_dataset.shp") %>%
+MANCH_dataset_jobs <- read_sf("../Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
          "LSOA_Name" = "LSOA21N",
-         "TravelTime_Jobcentre" = "Tr__J_C",
          "PT_Job_Access_Index" = "PT_Jb_A_I",
          "Employed_Population" = "Employd",
          "LSOA_Area" = "LSOA__2",
          "Traveltime_empcent" = "Tr__E_C")
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=200)
 
 # Town centres
-towns_centroids <- read_sf("Data/towns_centroids.shp")
+towns_centroids <- read_sf("../Data/towns_centroids.shp")
 towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 #Town boundaries
-towns <- st_read("Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_GMCA_buffer <- towns[st_within(towns, GMCA_bound_small_buffer, sparse = FALSE), ]

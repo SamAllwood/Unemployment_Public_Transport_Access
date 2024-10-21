@@ -16,7 +16,7 @@ library(flextable)
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "PopulationDensityChange.R" script
-MAN_pop <- read_sf("Data/MANCH_population.shp") %>%
+MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA_Code" = "LSOA21C",
@@ -25,7 +25,7 @@ MAN_pop <- read_sf("Data/MANCH_population.shp") %>%
   dplyr::select(LSOA_Code, Pop_Dens_change, Man_Pop_Dens, Man_Pop) %>%
   as.data.frame()
 
-MANCH_dataset_descript <- read_csv("Data/MANCH_dataset_full.csv") %>%
+MANCH_dataset_descript <- read_csv("../Data/MANCH_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
             "Level_2_qual", 
             "Level_2_qual", 
@@ -69,7 +69,7 @@ MANCH_dataset_descript <- read_csv("Data/MANCH_dataset_full.csv") %>%
          SEC_Management_pc = as.numeric(SEC_Management_pc))
 
 # Unemployment Levels
-Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Total: All usual residents aged 16 years and over",

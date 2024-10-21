@@ -21,7 +21,7 @@ library(stars)
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "Population_Density_Change.R" script
-MAN_pop <- read_sf("Data/MANCH_population.shp") %>%
+MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA21CD" = "LSOA21C",
