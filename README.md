@@ -7,9 +7,9 @@ All scripts used for the project analysis and mapping are in the folders for the
 
 ### Public Transport Job Accessibility (Demand-adjusted)
 Greater Manchester Combined Authority (above) and Liverpool City Region (below).
-<div style="display: flex; flex-direction: row;">
-  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" width="400";">
-  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="500";">
+<div style="display: flex; flex-direction: row; gap: 20px;">
+  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" width="400">
+  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="500">
 </div>
 
 ### Population Distribution in GMCA:
