@@ -8,7 +8,7 @@ The scripts which start with '3' are for creating the distribution maps of GMCA,
 ### Public Transport Job Accessibility (Demand-adjusted)
 <div style="display: flex; flex-direction: row;">
   <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
-  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="700">
+  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="600">
 </div>
 
 ### Population Distribution in GMCA:
