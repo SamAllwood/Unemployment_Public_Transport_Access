@@ -9,10 +9,10 @@ All scripts used for the project analysis and mapping are in the folders for the
 Greater Manchester Combined Authority (left) and Liverpool City Region (Right)
 <div style="display: flex; flex-direction: row;">
   <figure style="text-align: center;">
-    <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" width="400" style="border: 2px solid black;">
+    <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" width="400";">
   </figure>
   <figure style="text-align: center;">
-    <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="600" style="border: 2px solid black;">
+    <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="600";">
   </figure>
 </div>
 
