@@ -1,4 +1,4 @@
-
+# Script to create the travel time matrix for Liverpool City Region Combined Authority (LCR) using the R5r package
 # 1. Setup ----------------------------------------------------------------
 library(tidyverse)
 library(knitr)
@@ -16,10 +16,10 @@ options(timeout = 1000)
 options(scipen=999)
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
 
 # LCR Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
 LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=25)
@@ -29,7 +29,7 @@ buffered_LCR_boundary <- st_buffer(LCR_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within LCR
 LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
@@ -37,7 +37,7 @@ LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, spars
 # mapview(LADs_LCR)+mapview(LCR_boundary)
 
 # Read LSOA pop-weighted centroids
-lsoas <- st_read("Data/GTFS_Data/LSOA/LLSOA_Dec_2021_PWC_for_England_and_Wales_2022/LSOA_PopCentroids_EW_2021_V3.shp") %>%
+lsoas <- st_read("../../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
   st_transform(4326)
 # Filter LSOA PW-centroids
 lsoas <- st_make_valid(lsoas)
@@ -52,7 +52,7 @@ lsoa_PWC_within_LCR_buffer$geometry <- st_transform(lsoa_PWC_within_LCR_buffer$g
 lsoa_PWC_within_LCR$geometry <- st_transform(lsoa_PWC_within_LCR$geometry, 4326)
 
 #Read LSOA boundaries
-lsoa_boundaries <- st_read("Data/GTFS_Data/LSOA/Lower_layer_Super_Output_Areas_2021_EW_BFC_V8/LSOA_2021_EW_BFC_V8.shp") %>%
+lsoa_boundaries <- st_read("../../Data/LSOA_2021_EW_BFC_V8.shp") %>%
   st_transform(4326)
 lsoa_boundaries$geometry <- st_make_valid(lsoa_boundaries$geometry)
 lsoa_boundaries$LSOA_area <- st_area(lsoa_boundaries$geometry)
@@ -67,12 +67,10 @@ lsoa_boundaries_within_LCR <- lsoa_boundaries[st_within(lsoa_boundaries,
                                                          LCR_bound_small_buffer, 
                                                          sparse = FALSE), ]
 # Read Towns and City boundaries
-towns <- st_read("Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_LCR_buffer <- towns[st_within(towns, buffered_LCR_boundary, sparse = FALSE), ]
-towns_centroids <- st_centroid(towns_within_LCR_buffer) %>%
-  rename(id = TCITY15CD) %>% st_transform(4326)
 
 towns_manual_LCR <- data.frame( 
   id = c("Birkenhead", "Chester", "Liverpool", "Southport", "St Helens", "Warrington", "Wigan"),
@@ -83,11 +81,11 @@ towns_manual_LCR <- data.frame(
 
 # Convert the dataframe to an sf object, assuming WGS 84 (EPSG: 4326) coordinate reference system
 towns_manual_LCR <- st_as_sf(towns_manual_LCR, coords = c("lon", "lat"), crs = 4326)
-mapview(towns_manual_LCR)+
-  mapview(towns_within_LCR_buffer)+
-  mapview(LCR_boundary)+
-  mapview(buffered_LCR_boundary) +
-  mapview(towns_centroids)
+#mapview(towns_manual_LCR)+
+#  mapview(towns_within_LCR_buffer)+
+#  mapview(LCR_boundary)+
+#  mapview(buffered_LCR_boundary) +
+#  mapview(towns_centroids)
 
 # Label LSOAs within town boundaries
 towns_with_buffer <- towns_within_LCR_buffer %>% st_buffer(dist=400)
@@ -116,15 +114,15 @@ lsoa_with_town_info_min <- lsoa_with_town_info %>%  select(LSOA21CD,
 #mapview(towns_within_LCR_buffer)+mapview(LCR_boundary)+mapview(towns_centroids)+mapview(towns_manual_LCR)
 #mapview(lsoa_with_town_info)+ mapview(towns_with_buffer)
 
-# Liverpool City Centre - LOCATION? And fix coords
+# Liverpool City Centre - LOCATION not super-important as not used for any calculation. Arbitrary city centre point
 LCR_CC <- 
   data.frame(id = "LCR_CC", lat = 53.407438, lon = -2.981652) %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
 LCR_CC_point <- 
   geom_sf(data = LCR_CC, shape = 21, fill = 'white', size = 2)
-
+mapview(LCR_CC)
 # Employed Residents
-Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Economically active (excluding full-time students)") %>%
@@ -151,7 +149,7 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
 # 4. R5R Network Setup -------------------------------------------------------
 # Get input files - will load BODS_MANCH and BODS_LCR - consider simplifying if
 # too slow.
-input_files <- list.files("Data/GTFS_Data/r5r", 
+input_files <- list.files("../../Data/r5r_data", 
   recursive = TRUE,
   pattern = 'gtfs\\.zip$|pbf$',
   full.names = TRUE)
@@ -162,7 +160,7 @@ input_files
 # Read multi-modal network
 gc() #this setup step requires quite a bit of memory, so best to gc first
 options(java.parameters = "-Xmx8G")
-r5r_LCR <- setup_r5(data_path = "Data/GTFS_Data/r5r", 
+r5r_LCR <- setup_r5(data_path = "../../Data/r5r_data", 
                      verbose=TRUE,
                      overwrite = FALSE) # make sure you leave this to run after it indicates it's finished
 
@@ -181,7 +179,7 @@ print(r5r_LCR)
 departure_datetime <- as.POSIXct("2024-05-21 08:00:00") 
 mode = c( "TRANSIT") # note function always includes 'WALK' anyway
 walk_speed = 4.32
-max_duration = 200L
+max_duration = 2000L
 max_walk_time = 30L
 
 LCR_TT_CC <- 
@@ -257,12 +255,12 @@ LCR_ttm_bus <-
     verbose = FALSE,
     progress = TRUE)
 
-LCR_ttm_tram <-
+LCR_ttm_train <-
   travel_time_matrix(
     r5r_core = r5r_LCR, 
     origins = lsoa_PWC_within_LCR, 
     destinations = lsoa_PWC_within_LCR_buffer, 
-    mode = "TRAM",
+    mode = "RAIL",
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
     max_trip_duration = max_duration,
@@ -285,13 +283,13 @@ LCR_ttm_walk <-
 
 # BRES --------------------------------------------------------------------
 # Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
-BRES <- read_csv("Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
+BRES <- read_csv("../../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
   separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
   rename("Employed" = "...2") %>%
   dplyr::select(-c("...3", "...4","...5")) %>%
   na.omit()
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Lookup correct LSOA codes
 # left join will duplicate 2011 employment numbers if LSOA is merged in 2021. 
@@ -326,14 +324,14 @@ job_access_bus <- gravity(
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_Bus" = "Employed")
 
-job_access_tram <- gravity(
-  travel_matrix=LCR_ttm_tram,
+job_access_train <- gravity(
+  travel_matrix=LCR_ttm_train,
   travel_cost="travel_time_p50",
   land_use_data=BRES_2021_corrected,
   opportunity="Employed",
   decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
   fill_missing_ids = TRUE) %>%
-  rename("PT_Job_Access_Index_Tram" = "Employed")
+  rename("PT_Job_Access_Index_Train" = "Employed")
 
 job_access_walk <- gravity(
   travel_matrix=LCR_ttm_walk,
@@ -348,7 +346,7 @@ job_access_walk <- gravity(
 trav <- data.frame(
   from_id = 123,
   to_id = 456,
-  travel_time_p50 =60)
+  travel_time_p50 =45)
 opp <- data.frame(
   id = 456,
   Employed = 1000)
@@ -404,7 +402,7 @@ job_access_demand <- gravity(
 LCR_dataset <- LCR_TT_CC %>% 
   left_join(job_access, by = c("LSOA21CD"="id")) %>%
   left_join(job_access_bus, by = c("LSOA21CD"="id")) %>%
-  left_join(job_access_tram, by = c("LSOA21CD"="id")) %>%
+  left_join(job_access_train, by = c("LSOA21CD"="id")) %>%
   left_join(job_access_walk, by = c("LSOA21CD"="id")) %>%
   left_join(BRES_2021_corrected, by = c("LSOA21CD"="id")) %>%
   left_join(closest_emp_centre_LSOA, by = c("LSOA21CD"="from_id")) %>%
@@ -413,5 +411,5 @@ LCR_dataset <- LCR_TT_CC %>%
   left_join(job_access_demand, by = c("LSOA21CD"="id")) 
 
 # Write dataset to shapefile
-st_write(LCR_dataset, "Data/LCR_dataset.shp", append=FALSE)
-st_write(towns_manual_LCR, "Data/towns_centroids_LCR.shp", append=FALSE)
+st_write(LCR_dataset, "../../Data/LCR_dataset.shp", append=FALSE)
+st_write(towns_manual_LCR, "../../Data/towns_centres_LCR.shp", append=FALSE)
