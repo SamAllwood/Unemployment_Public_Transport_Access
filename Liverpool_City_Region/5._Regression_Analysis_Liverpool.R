@@ -24,8 +24,10 @@ library(stats)
 library(gtsummary)
 library(stargazer)
 
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
+
 # 2. Load Data ------------------------------------------------------------
-LCR_dataset_full <- read_csv("Data/LCR_dataset_full.csv") %>%
+LCR_dataset_full <- read_csv("../../Data/LCR_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
             "Level_2_qual", 
             "Level_2_qual", 
@@ -41,7 +43,7 @@ LCR_dataset_full <- read_csv("Data/LCR_dataset_full.csv") %>%
          "Townsuburb" = "twnsbrb",
          "TownNamed" = "TCITY15") 
 
-LCR_pop_regress <- read_sf("Data/LCR_population.shp") %>%
+LCR_pop_regress <- read_sf("../../Data/LCR_population.shp") %>%
   st_transform(4326) %>%
   rename("LSOA_Code" = "LSOA21C",
          "Pop_Dens" = "P_2021_",
@@ -54,7 +56,6 @@ LCR_data_regress <- LCR_pop_regress %>%
          "LSOA_Name", 
          "LAD22CD",
          "TownNamed",
-         "TravelTime_Jobcentre", 
          "PT_Job_Access_Index",
          "Unemployment_rate", 
          "Traveltime_empcent",
@@ -75,7 +76,7 @@ LCR_data_regress <- LCR_pop_regress %>%
          "MSOA21CD",
          "PT_Job_Access_Index_Demand"
          ) %>%
-  mutate(TravelTime_Jobcentre = as.numeric(TravelTime_Jobcentre),
+  mutate(
          PT_Job_Access_Index = as.numeric(PT_Job_Access_Index)/1000,
          Unemployment_rate = as.numeric(Unemployment_rate),
          Traveltime_empcent = as.numeric(Traveltime_empcent),
@@ -96,13 +97,13 @@ LCR_data_regress <- LCR_pop_regress %>%
          PT_Job_Access_Index_Demand = as.numeric(PT_Job_Access_Index_Demand)
          )
 # LCR Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
 LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=25)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within LCR
 LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
@@ -137,7 +138,7 @@ LCR_districts_joined <- LCR_data_regress %>% distinct(LSOA_Code, .keep_all=TRUE)
     labs(title = "Fixed Effect Area Outlines") +
     theme_void() +
     theme(legend.position = "none"))
-ggsave("Plots/FE_areas.jpeg", plot = FE_boundaries, units = "cm")
+ggsave("Images/FE_areas.jpeg", plot = FE_boundaries, units = "cm")
 
 # 3. Assess need for multilevel regression --------------------------------
 intercept_only <- gls(Unemployment_rate ~1, 
@@ -849,7 +850,7 @@ ivreg_model_data$BIC <- log(n) * k - 2 * logLik_iv
          "Multiple R-squared" = r.squared,
          "p-value" = p.value) %>%
   flextable() %>%
-  set_table_properties(ft, width = 1, layout = "autofit"))
+  set_table_properties(, width = 1, layout = "autofit"))
 
 # Create a Word document
 doc <- read_docx()
@@ -929,5 +930,5 @@ stargazer(FE_LL_Model, FE_LL_Model_IV,  type = "html",
           star.cutoffs = 0.05,
           notes = "Confidence Intervals in parentheses. * = p < 0.05",
           notes.append = FALSE,
-          out = "Regression_Comparison.html")
+          out = "Regression_Comparison_LCR.html")
   

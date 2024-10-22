@@ -11,12 +11,12 @@ library(classInt)
 library(readODS)
 library(accessibility)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
 
 # 2. Load Data ------------------------------------------------------------
 
 # Load Liverpool Geo data from file
-LCR_dataset <- read_sf("Data/LCR_dataset.shp") %>%
+LCR_dataset <- read_sf("../../Data/LCR_dataset.shp") %>%
                                    rename("LSOA_Code" = "LSOA21C",
                                           "LSOA_Name" = "LSOA21N",
                                           "PT_Job_Access_Index" = "PT_Jb_A_I",
@@ -28,30 +28,30 @@ LCR_dataset <- read_sf("Data/LCR_dataset.shp") %>%
                                           "Traveltime_empcent" = "Tr__E_C",
                                           "Traveltime_CC" = "Trvl_CC",
                                           "PT_Job_Access_Index_Demand" = "PT_Jb_A_I_")
-towns_centroids_LCR <- read_sf("Data/towns_centroids_LCR.shp") #manually updated in 1. TravelTimeMatrix.R
+towns_centres_LCR <- read_sf("../../Data/towns_centres_LCR.shp") 
 
 # LCR Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
 LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=25)
 
-towns_centroids_LCR <- towns_centroids_LCR %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
+towns_centres_LCR <- towns_centres_LCR %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within LCR
 LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Output area lookup
-Output_Area_Lookup <- read_csv("Data/Output_Area_to_Lower_layer_Super_Output_Area_to_Middle_layer_Super_Output_Area_to_Local_Authority_District_(December_2021)_Lookup_in_England_and_Wales_v3.csv") %>%
+Output_Area_Lookup <- read_csv("../../Data/Output_Area_to_Lower_layer_Super_Output_Area_to_Middle_layer_Super_Output_Area_to_Local_Authority_District_(December_2021)_Lookup_in_England_and_Wales_v3.csv") %>%
   dplyr::select(LSOA21CD, MSOA21CD, LAD22CD) %>%
   distinct(LSOA21CD, .keep_all=TRUE)
 
 # Jobcentres Data - downloaded and filtered in TravelTimeMatrix.R
-Jobcentre_plus_geocoded <- read_csv("Data/Jobcentre_locations_geocoded.csv")
+Jobcentre_plus_geocoded <- read_csv("../../Data/Jobcentre_locations_geocoded.csv")
 # Convert job centres to simple feature 
 Jobcentre_plus_geocoded <- Jobcentre_plus_geocoded %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -62,7 +62,7 @@ Jobcentres_within_LCR <- Jobcentre_plus_geocoded %>%
 
 
 # Unemployment Levels
-Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
          "geography code",
          "Economic activity status: Total: All usual residents aged 16 years and over",
@@ -77,7 +77,7 @@ Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
 
 
 #Car ownership rate
-Car_ownership <- read_csv("Data/census2021-ts045/census2021-ts045-lsoa.csv") %>%
+Car_ownership <- read_csv("../../Data/census2021-ts045-lsoa.csv") %>%
   dplyr::select("geography",
          "geography code",
          "Number of cars or vans: Total: All households",
@@ -89,7 +89,7 @@ Car_ownership <- read_csv("Data/census2021-ts045/census2021-ts045-lsoa.csv") %>%
   mutate(No_car_rate = No_Cars*100/Total_Households)
 
 # Ethnicity
-Ethnicity <- read_csv("Data/census2021-ts021-lsoa.csv", skip=6) %>%
+Ethnicity <- read_csv("../../Data/census2021-ts021-lsoa.csv", skip=6) %>%
   dplyr::select("2021 super output area - lower layer",
          "White",
          "%...11") %>%
@@ -100,14 +100,14 @@ Ethnicity <- read_csv("Data/census2021-ts021-lsoa.csv", skip=6) %>%
   mutate(LSOA_Code = sapply(strsplit(as.character(LSOA_Code), " : "), "[", 1))
 
 # Single-parent household
-SingleParent <- read_csv("Data/census2021-ts003-lsoa.csv", skip=6) %>%
+SingleParent <- read_csv("../../Data/census2021-ts003-lsoa.csv", skip=6) %>%
   rename("LSOA_Code" = "2021 super output area - lower layer",
          "Single_Parent_Households" = "2021") %>%
   drop_na() %>%
   mutate(LSOA_Code = sapply(strsplit(as.character(LSOA_Code), " : "), "[", 1))
 
 # NS-Socio-Economic Classification
-NS_SEC <- read_csv("Data/census2021-ts062/census2021-ts062-lsoa.csv", skip=0) %>%
+NS_SEC <- read_csv("../../Data/census2021-ts062-lsoa.csv", skip=0) %>%
   rename(LSOA_Code = "geography code",
          Total = "National Statistics Socio-economic Classification (NS-SEC): Total: All usual residents aged 16 years and over",
          L1_L2_L3 = "National Statistics Socio-economic Classification (NS-SEC): L1, L2 and L3 Higher managerial, administrative and professional occupations",
@@ -136,7 +136,7 @@ NS_SEC <- read_csv("Data/census2021-ts062/census2021-ts062-lsoa.csv", skip=0) %>
 
 
 # Qualification levels
-Qualifications <- read_csv("Data/census2021-ts067/census2021-ts067-lsoa.csv") %>%
+Qualifications <- read_csv("../../Data/census2021-ts067-lsoa.csv") %>%
   dplyr::select("geography code",
          "Highest level of qualification: Total: All usual residents aged 16 years and over",
          "Highest level of qualification: No qualifications",
@@ -158,7 +158,7 @@ Qualifications <- read_csv("Data/census2021-ts067/census2021-ts067-lsoa.csv") %>
            Low_Qualified/Total_residents_over_16*100)
 
 # Urban rural classifications
-Urban_Rural <- read_ods("Data/Rural_Urban_Classification_2011_lookup_tables_for_small_area_geographies.ods", 
+Urban_Rural <- read_ods("../../Data/Rural_Urban_Classification_2011_lookup_tables_for_small_area_geographies.ods", 
                         sheet = "LSOA11", 
                         skip=2) %>%
   rename("LSOA11CD" = "Lower Super Output Area 2011 Code",
@@ -169,7 +169,7 @@ Urban_Rural <- read_ods("Data/Rural_Urban_Classification_2011_lookup_tables_for_
           "Urban_Rural") 
 
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 # Lookup 2021 LSOA codes
 # left join 2011 Urban Rural classification if LSOA is split into two in 2021. 
 # Split LSOAs - population split between new LSOAs generated in 2011
@@ -196,7 +196,7 @@ LCR_dataset_full <- left_join(LCR_dataset, Employment, by = c("LSOA_Code" = "id"
   rename(LAD22CD = LAD22CD.x)
 
 # Write dataset to csv
-write_csv(LCR_dataset_full, "Data/LCR_dataset_full.csv")
+write_csv(LCR_dataset_full, "../../Data/LCR_dataset_full.csv")
 
 LCR_dataset_full %>% dplyr::select ( -c(
                                    "Population (16 and over)",
@@ -213,7 +213,7 @@ LCR_dataset_full %>% dplyr::select ( -c(
                                    Level_2_qual,
                                    Apprent_qual
                                 )) %>%
-  st_write( "Data/LCR_dataset_full_sf.shp", append = FALSE)
+  st_write( "../../Data/LCR_dataset_full_sf.shp", append = FALSE)
 
 # Calculate higher-level unemployment rates
 Overall_unemp_rate <- sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100

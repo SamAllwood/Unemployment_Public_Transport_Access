@@ -1,4 +1,4 @@
-
+### RUN 3.c.PopulationDensityChange_Liverpool.R FIRST to create the accurate Population shapefile
 # 1. Setup ----------------------------------------------------------------
 options(rgl.useNULL = FALSE)
 require(tidyverse)
@@ -15,20 +15,20 @@ require(magick)
 require(extrafont)
 library(stars)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "Population_Density_Change.R" script
-LCR_pop <- read_sf("Data/LCR_population.shp") %>%
+LCR_pop <- read_sf("../../Data/LCR_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA21CD" = "LSOA21C",
-         "Man_Pop_Dens"  = "P_2021_") %>%
-  dplyr::select(LSOA21CD, Pop_Dens_change, Man_Pop_Dens,geometry)
+         "Pop_Dens"  = "P_2021_") %>%
+  dplyr::select(LSOA21CD, Pop_Dens_change, Pop_Dens, geometry)
 
 # check the boundary plot
-ggplot(MAN_pop) +
-  geom_sf(aes(fill = Man_Pop_Dens),
+ggplot(LCR_pop) +
+  geom_sf(aes(fill = Pop_Dens),
           color = "gray66",
           linewidth = 0)+
   theme_minimal() 
@@ -37,7 +37,7 @@ ggplot(MAN_pop) +
 # Create Bounding Box -----------------------------------------------------
 
 # setting the boundary as a bounding box
-bbox <- st_bbox(MAN_pop) %>%
+bbox <- st_bbox(LCR_pop) %>%
   st_set_crs(4326)
 
 # finding the aspect ratio
@@ -67,7 +67,7 @@ if(width > height) {
 size = 250 * 3.5
 
 pop_raster <- st_rasterize(
-  MAN_pop,
+  LCR_pop,
   nx = floor(size * w_ratio) %>% as.numeric(),
   ny = floor(size * h_ratio) %>% as.numeric()
 )
@@ -77,7 +77,7 @@ pop_dens_change_matrix <- matrix(pop_raster$Pop_Dens_change,
                      nrow = floor(size * w_ratio),
                      ncol = floor(size * h_ratio))
 
-pop_matrix <- matrix(pop_raster$Man_Pop_Dens,
+pop_matrix <- matrix(pop_raster$Pop_Dens,
                      nrow = floor(size * w_ratio),
                      ncol = floor(size * h_ratio))
 # Define colours
@@ -127,7 +127,7 @@ render_camera(theta = 0,
 )
 
 
-outfile <- glue::glue("Plots/Manch_Pop.png")
+outfile <- glue::glue("Plots/LCR_Pop.png")
 
 {
   start_time <- Sys.time()

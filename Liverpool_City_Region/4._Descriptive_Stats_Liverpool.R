@@ -15,7 +15,7 @@ library(flextable)
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "PopulationDensityChange.R" script
-LCR_pop <- read_sf("Data/LCR_population.shp") %>%
+LCR_pop <- read_sf("../../Data/LCR_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA_Code" = "LSOA21C",
@@ -24,7 +24,7 @@ LCR_pop <- read_sf("Data/LCR_population.shp") %>%
   dplyr::select(LSOA_Code, Pop_Dens_change, LCR_Pop_Dens, LCR_Pop) %>%
   as.data.frame()
 
-LCR_dataset_descript <- read_csv("../Data/LCR_dataset_full.csv") %>%
+LCR_dataset_descript <- read_csv("../../Data/LCR_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
             "Level_2_qual", 
             "Level_2_qual", 
@@ -66,10 +66,9 @@ LCR_dataset_descript <- read_csv("../Data/LCR_dataset_full.csv") %>%
          LCR_Pop = as.numeric(LCR_Pop),
          LCR_Pop_Dens = as.numeric(LCR_Pop_Dens),
          SEC_Management_pc = as.numeric(SEC_Management_pc))
-#         SEC_Lower_supervisory_routine_pc = as.numeric(SEC_Lower_supervisory_routine_pc))
 
 # Unemployment Levels
-Employment <-read_csv("Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Total: All usual residents aged 16 years and over",
@@ -125,7 +124,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Descrp_table)
 # Save the Word document
-print(doc, target = "descriptive_table_LCR.docx")
+# print(doc, target = "descriptive_table_LCR.docx")
 
 # Calculate higher-level unemployment rates
 Overall_unemp_rate <- round((sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100),2)
@@ -170,7 +169,7 @@ additional_rows <- data.frame(
                                              LCR_urban_pop,
                                              LCR_suburb_pop,
                                              NA),
-                              Jobs_per_person = c(round((LCR_jobs / LCR_pop), 2),
+                              Jobs_per_person = c(round((LCR_jobs / LCR_population), 2),
                                                   round((LCR_urban_jobs/LCR_urban_pop), 2),
                                                   round((LCR_suburb_jobs/LCR_suburb_pop), 2),
                                                   NA),
@@ -178,7 +177,7 @@ additional_rows <- data.frame(
                                                          Town_unemp_rate,
                                                          Suburb_unemp_rate,
                                                          Overall_unemp_rate)) %>%
-  arrange(match(TownNamed, c("LCR Urban Areas",
+  dplyr::arrange(match(TownNamed, c("LCR Urban Areas",
                               "LCR Suburban Areas",
                               "LCR",
                               "England and Wales")))
@@ -203,7 +202,7 @@ towns_jobs <- LCR_dataset_descript  %>%
          "Unemployment Rate (%)" = "Unemployment_Rate_Town") %>%
   as.data.frame() %>%
   flextable() %>%
-  hline(i=c(8,10,11)) %>%
+  hline(i=c(4,6,7,8)) %>%
   set_table_properties(layout = "autofit",
                        align = "center") %>%
   set_caption("Table 2. Employment and Population in Liverpool City Region Combined Authority (LCRCA) Cities and Towns") 
@@ -213,4 +212,4 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = towns_jobs)
 # Save the Word document
-print(doc, target = "towns_jobs_LCR.docx")
+# print(doc, target = "towns_jobs_LCR.docx")

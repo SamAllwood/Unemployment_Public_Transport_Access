@@ -9,12 +9,12 @@ library(ggplot2)
 library(classInt)
 library(ggspatial)
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
 
 # 2. Load Data ------------------------------------------------------------
 
 # Load Liverpool Geo data from file
-LCR_dataset_jobs <- read_sf("Data/LCR_dataset.shp") %>%
+LCR_dataset_jobs <- read_sf("../../Data/LCR_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
          "LSOA_Name" = "LSOA21N",
          "PT_Job_Access_Index" = "PT_Jb_A_I",
@@ -23,18 +23,18 @@ LCR_dataset_jobs <- read_sf("Data/LCR_dataset.shp") %>%
          "Traveltime_empcent" = "Tr__E_C")
 
 # LCR Boundary + buffer
-Boundaries <- read_sf("Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
-LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=200)
+LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=1000)
 
 # Town centres
-towns_centroids_LCR <- read_sf("Data/towns_centroids_LCR.shp") %>% 
+towns_centres_LCR <- read_sf("../../Data/towns_centres_LCR.shp") %>% 
   st_transform(4326) %>%
   filter(buffer == "N") 
 
 #Town boundaries
-towns <- st_read("Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_LCR_buffer <- towns[st_within(towns, LCR_bound_small_buffer, sparse = FALSE), ]
@@ -59,7 +59,7 @@ labels_jobs <- c("Lowest quintile","","","","Highest quintile")
                     labels = labels_jobs) +
   labs(fill = "Job density (quintiles)")+
     geom_sf(data=towns_within_LCR_buffer, fill = NA, col = "black", linewidth = 0.3) +
-  geom_sf(data=towns_centroids_LCR, shape = 21, fill = 'white', size = 1.5) +
+    geom_sf(data=(towns_centres_LCR %>% filter("Buffer" == "N")), shape = 21, fill = 'white', size = 1.5) +
     geom_label( x=-2.88, y=53.40, label="Liverpool", size=3) +
     geom_label( x=-2.73, y=53.43, label="St. Helens", size=3) +
     geom_label( x=-3.10, y=53.64, label="Southport", size=3) +
@@ -71,7 +71,7 @@ labels_jobs <- c("Lowest quintile","","","","Highest quintile")
                      pad_y = unit(0, "cm"))+
   theme_void() )
 
-ggsave(file = "3.Liverpool_maps/jobs_LCR.jpeg", device = "jpeg", plot = jobs)
+ggsave(file = "Images/jobs_LCR.jpeg", device = "jpeg", plot = jobs)
 
 # Create job locations variable as % of LCR jobs
 LCR_dataset_jobs$Employed_Population_percent <- LCR_dataset_jobs$Employed_Population*100/sum(LCR_dataset_jobs$Employed_Population)

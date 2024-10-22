@@ -27,7 +27,7 @@ library(gtsummary)
 library(stargazer)
 
 # 2. Load Data ------------------------------------------------------------
-MANCH_dataset_full <- read_csv("../Data/MANCH_dataset_full.csv") %>%
+MANCH_dataset_full <- read_csv("../../Data/MANCH_dataset_full.csv") %>%
   dplyr::select(-c("Apprent_qual",
             "Level_2_qual", 
             "Level_2_qual", 
@@ -852,5 +852,5 @@ stargazer(FE_LL_Model, FE_LL_Model_IV,  type = "html",
           star.cutoffs = 0.05,
           notes = "Confidence Intervals in parentheses. * = p < 0.05",
           notes.append = FALSE,
-          out = "../Final_Report/Regression_Comparison.html")
+          out = "Regression_Comparison_GMCA.html")
   
