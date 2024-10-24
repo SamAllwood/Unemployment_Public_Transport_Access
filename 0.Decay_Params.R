@@ -64,14 +64,18 @@ Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePerc
   mutate(CommutePercentage_NW = round(CommutePercentage_NW, 1),
          CommutePercentage_UK = round(CommutePercentage_UK, 1)) %>%
   mutate("Year" = as.character(Year)) %>%
-  rename("NorthWest" = CommutePercentage_NW,
-         "UK" = CommutePercentage_UK) %>%
+  rename("NorthWest \n England (%)" = CommutePercentage_NW,
+         "UK (%)" = CommutePercentage_UK) %>%
   flextable() %>%
-  set_table_properties(width = 1, layout = "autofit")
+  set_table_properties(layout = "autofit") %>%
+  add_header_lines(values = c("Public Transport Commuting Modeshare in NorthWest England, 2002 - 2022")) %>%
+  add_footer_lines(values = c("Source: National Travel Survey 2002-2022")) 
+
+
 # Create a Word document with table
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = Commuting)
-print(doc, target = "Final_Report/Commuting.docx")
+# print(doc, target = "Final_Report/Commuting.docx")
 
 # Some summary figures
 number_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% nrow()
@@ -137,10 +141,10 @@ CDF <- ggplot(plot_data, aes(x = TripTotalTime, y = CDF)) +
   geom_line(data = plot_data, aes(x = TripTotalTime, y = CDF, color = "CDF"), linewidth = 1) +
   geom_line(data = log_decay_data, aes(x = x, y = y, color = "Estimated Logistic Decay Curve"), size = 1) +
   theme_stata() +
-  scale_color_manual(name = "Legend", values = c("CDF" = "blue", "Estimated Logistic Decay Curve" = "red")) +
+  scale_color_manual(values = c("CDF" = "blue", "Estimated Logistic Decay Curve" = "red")) +
   labs(x = "Trip Total Time", 
        y = "Density", 
-       title = "Cumulative Density Function (CDF) and \n Calculated Logistic Curve of Trip Total Time",
+       title = "Cumulative Density Function (CDF) of Trip Total Time \n and Calculated Logistic Decay Curve",
        caption = "Red line shows the curve calculated from the derived parameters, and the blue line is the 
        cumulative density function of the actual commuting travel data. \n Data Source: National Travel Survey 2002-2022"
        )
