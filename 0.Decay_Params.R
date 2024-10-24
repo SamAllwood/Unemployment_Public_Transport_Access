@@ -75,7 +75,7 @@ Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePerc
 # Create a Word document with table
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = Commuting)
-# print(doc, target = "Final_Report/Commuting.docx")
+print(doc, target = "Final_Report_(GMCA)/Commuting.docx")
 
 # Some summary figures
 number_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% nrow()
