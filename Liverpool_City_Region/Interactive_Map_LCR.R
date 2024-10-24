@@ -94,7 +94,7 @@ map <- LCR_dataset_interactive %>%
                                       "<strong>Jobs: </strong>", Jobs, "<br>",
                                       "<strong>LSOA Area: </strong>", LSOA_Area, "<br>",
                                       "<strong>Time to nearest town centre: </strong>", Traveltime_empcent, "<br>",
-                                      "<strong>PT Job Access Index: </strong>", PT_Job_Access_Index, "<br>"),
+                                      "<strong>PT Job Access Index Demand: </strong>", PT_Job_Access_Index_Demand ),
                                       htmltools::HTML)) %>%
   addCircleMarkers(data = towns_centres_LCR,
                    label = ~id,
@@ -102,7 +102,14 @@ map <- LCR_dataset_interactive %>%
                    opacity = 1,
                    stroke = TRUE,
                    weight = 4,
-                   color = "#03F") 
+                   color = "#03F") %>%
+  addLegend("bottomright", 
+            pal = PTJA_pal, 
+            values = ~PT_Job_Access_Index,
+            title = "Public Transport
+            Job Access Index, 
+            Demand Adjusted",
+            opacity = 1)
 
 # Save Map
 saveWidget(map, file="../docs/index.html")
