@@ -55,7 +55,7 @@ Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) %>%
   as("Spatial")
-LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=200)
+# LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=200)
 
 # Town centres
 towns_centres_LCR <- st_read("../../Data/towns_centres_LCR.shp") %>%
