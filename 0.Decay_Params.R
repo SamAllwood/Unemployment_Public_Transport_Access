@@ -134,13 +134,15 @@ log_decay_data <- data.frame(x = x_vals, y = y_vals)
 
 # Plot the CDF
 CDF <- ggplot(plot_data, aes(x = TripTotalTime, y = CDF)) +
-  geom_line(data = plot_data, aes(x = TripTotalTime, y = CDF, color = "CDF"), size = 1) +
+  geom_line(data = plot_data, aes(x = TripTotalTime, y = CDF, color = "CDF"), linewidth = 1) +
   geom_line(data = log_decay_data, aes(x = x, y = y, color = "Estimated Logistic Decay Curve"), size = 1) +
   theme_stata() +
   scale_color_manual(name = "Legend", values = c("CDF" = "blue", "Estimated Logistic Decay Curve" = "red")) +
   labs(x = "Trip Total Time", 
        y = "Density", 
        title = "Cumulative Density Function (CDF) and \n Calculated Logistic Curve of Trip Total Time",
-       caption = "Data Source: National Travel Survey 2002-2022")
+       caption = "Red line shows the curve calculated from the derived parameters, and the blue line is the 
+       cumulative density function of the actual commuting travel data. \n Data Source: National Travel Survey 2002-2022"
+       )
 
-ggsave("CumDenFun_LogisticDecay.jpeg", CDF, width = 10, height = 6)
+ggsave("0.CumDenFun_LogisticDecay.jpeg", CDF, width = 10, height = 6)
