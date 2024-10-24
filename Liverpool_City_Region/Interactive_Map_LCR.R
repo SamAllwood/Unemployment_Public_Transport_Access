@@ -102,14 +102,17 @@ map <- LCR_dataset_interactive %>%
                    opacity = 1,
                    stroke = TRUE,
                    weight = 4,
-                   color = "#03F") %>%
+                   color = "#03F",
+                   group = "Towns") %>%
   addLegend("bottomright", 
             pal = PTJA_pal, 
             values = ~PT_Job_Access_Index,
-            title = "Public Transport
-            Job Access Index, 
-            Demand Adjusted",
-            opacity = 1)
+            title = "PTJA-D",
+            opacity = 1) %>%
+  addLayersControl("Town Centres", 
+                   position = "topright",
+                   overlayGroups = c("Towns"),
+                   options = layersControlOptions(collapsed = FALSE))
 
 # Save Map
 saveWidget(map, file="../docs/index.html")
