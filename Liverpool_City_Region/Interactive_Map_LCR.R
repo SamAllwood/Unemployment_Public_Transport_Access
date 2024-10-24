@@ -105,7 +105,7 @@ map <- LCR_dataset_interactive %>%
                    color = "#03F") 
 
 # Save Map
-saveWidget(map, file="Interactive_Map_LCR.html")
+saveWidget(map, file="../Interactive_Map_LCR.html")
 
 #               "<strong>PT Job Access Index Bus: </strong>", PT_Job_Access_Index_bus, "<br>",
 #                "<strong>PT Job Access Index Train: </strong>", PT_Job_Access_Index_train, "<br>",
