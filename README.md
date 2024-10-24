@@ -3,7 +3,7 @@ MSc Urban Transport at Uni of Glasgow. Dissertation project on relationship betw
 
 Public transport job accessibility distribution for an area calculated by summing the numbers of jobs decayed according to travel time by public transport to their location. Travel time matrix calculated using [R5R, Rapid Realistic Routing algorithm for multi-model transit journeys](https://github.com/ipeaGIT/r5r).
 
-All scripts used for the project analysis and mapping are in the folders and you can find an interactive map of Liverpool City Region [here](Liverpool_City_Region/Interactive_Map_LCR.html)
+All scripts used for the project analysis and mapping are in the folders and you can find an interactive map of Liverpool City Region [here](https://github.com/SamAllwood/Unemployment_Public_Transport_Access/raw/refs/heads/main/Liverpool_City_Region/Interactive_Map_LCR.html)
 
 ### Public Transport Job Accessibility (Demand-adjusted)
 Greater Manchester Combined Authority (above) and Liverpool City Region (below).
