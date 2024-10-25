@@ -82,7 +82,7 @@ labels_jobs <- c("Lowest quintile","","","","Highest quintile")
                      pad_y = unit(0, "cm"))+
   theme_void() )
 
-ggsave(file = "Images/jobs.jpeg", device = "jpeg", plot = jobs)
+ggsave(file = "Images/Jobs_GMCA.jpeg", device = "jpeg", plot = jobs)
 
 # Create job locations variable as % of GMCA jobs
 MANCH_dataset_jobs$Employed_Population_percent <- MANCH_dataset_jobs$Employed_Population*100/sum(MANCH_dataset_jobs$Employed_Population)

@@ -46,9 +46,6 @@ LCR_dataset_interactive <- read_sf("../../Data/LCR_dataset.shp") %>%
                 PT_Job_Access_Index_Demand) %>%
   as("Spatial") # translates the shapefile into a spatial polygons dataframe
 
-
-## spatial_polygons_df <- as(sf_object, "Spatial")
-
 # LCR Boundary + buffer
 Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
@@ -59,6 +56,33 @@ LCR_bound_small_buffer <- Boundaries %>%
   st_buffer(dist=1500) %>%
   st_transform(4326) 
 
+## Read GMCA datasets
+# Load Manchester Geo data from file
+GMCA_dataset_interactive <- read_sf("../../Data/MANCH_dataset.shp") %>%
+  rename("LSOA_Code" = "LSOA21C",
+         "LSOA_Name" = "LSOA21N",
+         "TravelTime_Jobcentre" = "Tr__J_C",
+         "PT_Job_Access_Index" = "PT_Jb_A_I",
+         "PT_Job_Access_Index_bus" = "PT_J_A_I_B",
+         "PT_Job_Access_Index_tram" = "PT_J_A_I_T",
+         "PT_Job_Access_Index_walk" = "PT_J_A_I_W",         
+         "Jobs" = "Employd",
+         "LSOA_Area" = "LSOA__2",
+         "Traveltime_empcent" = "Tr__E_C",
+         "PT_Job_Access_Index_Demand" = "PT_Jb_A_I_") %>%
+  st_transform(4326) %>%
+  mutate(PT_Job_Access_Index_bus = PT_Job_Access_Index_bus - PT_Job_Access_Index_walk,
+         PT_Job_Access_Index_tram = PT_Job_Access_Index_tram - PT_Job_Access_Index_walk) %>%
+  as("Spatial")
+
+# GMCA Boundary + buffer
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
+GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
+  st_transform(4326)  %>%
+  as("Spatial")
+GMCA_bound_small_buffer <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
+  st_transform(4326)  %>% st_buffer(dist=50)
+
 
 # Read Towns and City boundaries
 towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
@@ -67,6 +91,8 @@ towns$geometry <- st_make_valid(towns$geometry)
 towns_within_LCR <- towns[st_within(towns, LCR_bound_small_buffer, sparse = FALSE), ] %>%
   as("Spatial")
 
+max(LCR_dataset_interactive$PT_Job_Access_Index)
+max(GMCA_dataset_interactive$PT_Job_Access_Index)
 
 # Town centres
 towns_centres_LCR <- st_read("../../Data/towns_centres_LCR.shp") %>%
@@ -75,11 +101,11 @@ towns_centres_LCR <- st_read("../../Data/towns_centres_LCR.shp") %>%
 
 
 PTJA_pal <- colorNumeric(palette = "Spectral",                       
-                       domain = LCR_dataset_interactive@data$PT_Job_Access_Index,
+                       domain = GMCA_dataset_interactive@data$PT_Job_Access_Index,
                        n=5,
                        reverse = TRUE)
 PTJA_D_pal <- colorNumeric(palette = "Spectral",                       
-                         domain = LCR_dataset_interactive@data$PT_Job_Access_Index_Demand,
+                         domain = GMCA_dataset_interactive@data$PT_Job_Access_Index_Demand,
                          n=5,
                          reverse = TRUE)
 # Interactive Map
@@ -111,7 +137,47 @@ PTJA_D_pal <- colorNumeric(palette = "Spectral",
                                       "<strong>Time to nearest town centre: </strong>", Traveltime_empcent, "<br>",
                                       "<strong>PT Job Access Index Demand: </strong>", PT_Job_Access_Index_Demand ),
                                       htmltools::HTML)) %>%
+    addPolygons(data = GMCA_dataset_interactive,
+                color = ~PTJA_D_pal(PT_Job_Access_Index_Demand),
+                fillOpacity = .8,
+                weight = 1, 
+                group = "PTJA-D",
+                label = ~lapply(paste0(
+                  "<strong>LSOA Code: </strong>", as.character(LSOA_Code), "<br>",
+                  "<strong>LSOA Name: </strong>", LSOA_Name, "<br>"
+                ),  htmltools::HTML),
+                highlight = highlightOptions(weight =3, color ="red",                                         
+                                             bringToFront =TRUE),
+                popup = ~lapply(paste0(
+                              "<strong>LSOA Code: </strong>", as.character(LSOA_Code), "<br>",
+                              "<strong>LSOA Name: </strong>", LSOA_Name, "<br>",
+                              #                "<strong>Population: </strong>", Population, "<br>",
+                              "<strong>Jobs: </strong>", Jobs, "<br>",
+                              "<strong>LSOA Area: </strong>", LSOA_Area, "<br>",
+                              "<strong>Time to nearest town centre: </strong>", Traveltime_empcent, "<br>",
+                              "<strong>PT Job Access Index Demand: </strong>", PT_Job_Access_Index_Demand ),
+                  htmltools::HTML)) %>%
     addPolygons(data = LCR_dataset_interactive,
+                color = ~PTJA_pal(PT_Job_Access_Index),
+                fillOpacity = .8,
+                weight = 1, 
+                group = "PTJA",
+                label = ~lapply(paste0(
+                  "<strong>LSOA Code: </strong>", as.character(LSOA_Code), "<br>",
+                  "<strong>LSOA Name: </strong>", LSOA_Name, "<br>"
+                ),  htmltools::HTML),
+                highlight = highlightOptions(weight =3, color ="red",                                         
+                                             bringToFront =TRUE),
+                popup = ~lapply(paste0(
+                  "<strong>LSOA Code: </strong>", as.character(LSOA_Code), "<br>",
+                  "<strong>LSOA Name: </strong>", LSOA_Name, "<br>",
+                  #                "<strong>Population: </strong>", Population, "<br>",
+                  "<strong>Jobs: </strong>", Jobs, "<br>",
+                  "<strong>LSOA Area: </strong>", LSOA_Area, "<br>",
+                  "<strong>Time to nearest town centre: </strong>", Traveltime_empcent, "<br>",
+                  "<strong>PT Job Access Index: </strong>", PT_Job_Access_Index ),
+                  htmltools::HTML)) %>%
+    addPolygons(data = GMCA_dataset_interactive,
                 color = ~PTJA_pal(PT_Job_Access_Index),
                 fillOpacity = .8,
                 weight = 1, 
@@ -145,12 +211,12 @@ PTJA_D_pal <- colorNumeric(palette = "Spectral",
             title = "PTJA-D",
             opacity = 1,
             group = "PTJA-D") %>%
-    addLegend("topright", 
-              pal = PTJA_pal, 
-              values = ~PT_Job_Access_Index,
-              title = "PTJA",
-              opacity = 1,
-              group = "PTJA") %>%
+  addLegend("topright", 
+            pal = PTJA_pal, 
+            values = ~PT_Job_Access_Index,
+            title = "PTJA",
+            opacity = 1,
+            group = "PTJA") %>%
   addPolygons(data = towns_within_LCR, 
               color = "black", 
               weight = 2,
