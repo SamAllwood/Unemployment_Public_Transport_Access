@@ -9,10 +9,12 @@ library(sf)
 library(ggplot2)
 library(ggspatial)
 library(classInt)
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
+
 
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
-MANCH_dataset_PTJA <- read_sf("../Data/MANCH_dataset.shp") %>%
+MANCH_dataset_PTJA <- read_sf("../../Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
          "LSOA_Name" = "LSOA21N",
          "TravelTime_Jobcentre" = "Tr__J_C",
@@ -29,17 +31,17 @@ MANCH_dataset_PTJA <- read_sf("../Data/MANCH_dataset.shp") %>%
          PT_Job_Access_Index_tram = PT_Job_Access_Index_tram - PT_Job_Access_Index_walk) 
 
 # Load Metrolink Shapefile
-Metrolink <- st_read("../Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
+Metrolink <- st_read("../../Data/Metrolink_Lines_Functional.shp")
 Metrolink$LineName <- "Metrolink"
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
 
 # Town centres
-towns_centroids <- read_sf("../Data/towns_centroids.shp")
-towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
+towns_centres <- read_sf("../../Data/towns_centres.shp")
+towns_centres_GMCA <- towns_centres %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # # Plot PTJA index in GMCA ---------------------------------------------
@@ -85,7 +87,7 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
           aes(color = LineName), 
       #    colour="black", 
           linewidth = 0.8) +
-  geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
+  geom_sf(data=towns_centres_GMCA, shape = 21, fill = 'white', size = 1.5) +
   geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
   geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
   geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
@@ -101,11 +103,11 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
                      pad_y = unit(0, "cm"))+
   theme_void())
 
-ggsave(file = "Plots/PTJA.jpeg", device = "jpeg", plot = PTJA)
+ggsave(file = "Images/PTJA_GMCA.jpeg", device = "jpeg", plot = PTJA)
 
 # bus contribution map
 (PTJA_bus <- MANCH_dataset_PTJA %>%
-    select(color_PTJA_bus, geometry) %>%
+    dplyr::select(color_PTJA_bus, geometry) %>%
     ggplot() +
     geom_sf(data=GMCA_boundary, colour="black",linewidth=1.0) +
     geom_sf(data = MANCH_dataset_PTJA, aes(fill = color_PTJA_bus), color = NA) + # color = NA removes the LSOA boundaries
@@ -138,15 +140,14 @@ ggsave(file = "Plots/PTJA.jpeg", device = "jpeg", plot = PTJA)
             colour="black", 
             linewidth = 0.8) +
     theme_void())
-mapview(MANCH_dataset_PTJA$color_PTJA_tram)
 
 
-# Adjusted for Demand Potential -------------------------------------------
+# Adjusted for Demand Potential PTJA-D-------------------------------------------
 # Calculate PTJA-D quantile breaks
 breaks_PTJA_D <- classIntervals(MANCH_dataset_PTJA$PT_Job_Access_Index_Demand, 
                                 n = 5, style = "quantile")$brks
 breaks_PTJA_D[1] <- 00
-# Create a factor variable for PTJA coloring
+# Create a factor variable for PTJA-D coloring
 MANCH_dataset_PTJA$color_PTJA_D <- cut(MANCH_dataset_PTJA$PT_Job_Access_Index_Demand, 
                                        breaks = breaks_PTJA_D, 
                                        include.lowest = TRUE, 
@@ -155,8 +156,6 @@ MANCH_dataset_PTJA$color_PTJA_D <- cut(MANCH_dataset_PTJA$PT_Job_Access_Index_De
 
 
 labels_PTJA_D <- c("Lowest PTJA-D Quintile","","","","Highest PTJA-D Quintile")
-# metrolink line colouring to include in legend
-line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), unique(Metrolink$LineName)) 
 
 # Plot PTJA by quintile in GMCA
 (PTJA_D <- MANCH_dataset_PTJA %>%
@@ -176,7 +175,7 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
             aes(color = LineName), 
             #    colour="black", 
             linewidth = 0.8) +
-    geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
+    geom_sf(data=towns_centres_GMCA, shape = 21, fill = 'white', size = 1.5) +
     geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
     geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
     geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
@@ -192,4 +191,4 @@ line_colours <- setNames(rep("black", length(unique(Metrolink$LineName))), uniqu
                      pad_y = unit(0, "cm"))+
     theme_void())
 
-ggsave(file = "Images/PTJA_D.jpeg", device = "jpeg", plot = PTJA_D)
+ggsave(file = "Images/PTJA_D_GMCA.jpeg", device = "jpeg", plot = PTJA_D)

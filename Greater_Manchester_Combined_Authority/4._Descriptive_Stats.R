@@ -13,10 +13,11 @@ library(gtsummary)
 library(kableExtra)
 library(officer)
 library(flextable)
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "PopulationDensityChange.R" script
-MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
+MAN_pop <- read_sf("../../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA_Code" = "LSOA21C",
@@ -25,14 +26,7 @@ MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
   dplyr::select(LSOA_Code, Pop_Dens_change, Man_Pop_Dens, Man_Pop) %>%
   as.data.frame()
 
-MANCH_dataset_descript <- read_csv("../Data/MANCH_dataset_full.csv") %>%
-  dplyr::select(-c("Apprent_qual",
-            "Level_2_qual", 
-            "Level_2_qual", 
-            "No_quals",
-            "Total_Households",
-            "No_Cars", 
-            "Number white")) %>%
+MANCH_dataset_descript <- read_csv("../../Data/MANCH_dataset_full.csv") %>%
   rename("White_percent" = "% White",
          "Single_parent_household_rate" = "%",
          "Townsuburb" = "twnsbrb") %>%
@@ -69,7 +63,7 @@ MANCH_dataset_descript <- read_csv("../Data/MANCH_dataset_full.csv") %>%
          SEC_Management_pc = as.numeric(SEC_Management_pc))
 
 # Unemployment Levels
-Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Total: All usual residents aged 16 years and over",
@@ -110,14 +104,15 @@ Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
       as.data.frame() %>%
       flextable() %>%
       set_table_properties(layout = "autofit",
-                           align = "center") )
+                           align = "center") %>%
+      set_caption("Table 2. Decriptive Statistics for Greater Manchester Combined Authority (LCRCA) Cities and Towns") )
   
 # Create a Word document
 doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Descrp_table)
 # Save the Word document
-print(doc, target = "Final_Report/descriptive_table.docx")
+print(doc, target = "../Final_Report_(GMCA)/descriptive_table_GMCA.docx")
 
 # Calculate higher-level unemployment rates
 Overall_unemp_rate <- round((sum(Employment$Unemployed) / sum(Employment$"Economically_active") *100),2)
@@ -189,4 +184,4 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = towns_jobs)
 # Save the Word document
-print(doc, target = "../Final_Report/towns_jobs.docx")
+print(doc, target = "../Final_Report_(GMCA)/towns_jobs_GMCA.docx")

@@ -11,9 +11,12 @@ library(classInt)
 library(readODS)
 library(accessibility)
 
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
+
+
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from 1._Public_transport_job_acess.R
-MANCH_dataset <- read_sf("../Data/MANCH_dataset.shp") %>%
+MANCH_dataset <- read_sf("../../Data/MANCH_dataset.shp") %>%
                                    rename("LSOA_Code" = "LSOA21C",
                                           "LSOA_Name" = "LSOA21N",
                                           "TravelTime_Jobcentre" = "Tr__J_C",
@@ -26,33 +29,33 @@ MANCH_dataset <- read_sf("../Data/MANCH_dataset.shp") %>%
                                           "Traveltime_empcent" = "Tr__E_C",
                                           "Traveltime_CC" = "Trvl_CC",
                                           "PT_Job_Access_Index_Demand" = "PT_Jb_A_I_")
-towns_centroids <- read_sf("../Data/towns_centroids.shp") # manually updated in 1._Public_Transport_Job_Access.R
+towns_centres <- read_sf("../../Data/towns_centres.shp") 
 
 # Load Metrolink Shapefile
-Metrolink <- st_read("../Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
+Metrolink <- st_read("../../Data/Metrolink_Lines_Functional.shp")
 Metrolink$LineName <- "Metrolink"
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
 
-towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
+towns_centres_Man <- towns_centres %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Output area lookup
-Output_Area_Lookup <- read_csv("../Data/Output_Area_to_Lower_layer_Super_Output_Area_to_Middle_layer_Super_Output_Area_to_Local_Authority_District_(December_2021)_Lookup_in_England_and_Wales_v3.csv") %>%
+Output_Area_Lookup <- read_csv("../../Data/Output_Area_to_Lower_layer_Super_Output_Area_to_Middle_layer_Super_Output_Area_to_Local_Authority_District_(December_2021)_Lookup_in_England_and_Wales_v3.csv") %>%
   dplyr::select(LSOA21CD, MSOA21CD, LAD22CD) %>%
   distinct(LSOA21CD, .keep_all=TRUE)
 
 # Jobcentres Data - downloaded and filtered in 1._Public_Transport_Job_Access.R
-Jobcentre_plus_geocoded <- read_csv("../Data/Jobcentre_locations_geocoded.csv")
+Jobcentre_plus_geocoded <- read_csv("../../Data/Jobcentre_locations_geocoded.csv")
 # Convert job centres to simple feature 
 Jobcentre_plus_geocoded <- Jobcentre_plus_geocoded %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -63,7 +66,7 @@ Jobcentres_within_GMCA <- Jobcentre_plus_geocoded %>%
 
 
 # Unemployment Levels
-Employment <-read_csv("../Data/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
          "geography code",
          "Economic activity status: Total: All usual residents aged 16 years and over",
@@ -78,7 +81,7 @@ Employment <-read_csv("../Data/census2021-ts066-lsoa.csv") %>%
 
 
 # Car ownership rate
-Car_ownership <- read_csv("../Data/census2021-ts045-lsoa.csv") %>%
+Car_ownership <- read_csv("../../Data/census2021-ts045-lsoa.csv") %>%
   dplyr::select("geography",
          "geography code",
          "Number of cars or vans: Total: All households",
@@ -90,7 +93,7 @@ Car_ownership <- read_csv("../Data/census2021-ts045-lsoa.csv") %>%
   mutate(No_car_rate = No_Cars*100/Total_Households)
 
 # Ethnicity
-Ethnicity <- read_csv("../Data/census2021-ts021-lsoa.csv", skip=6) %>%
+Ethnicity <- read_csv("../../Data/census2021-ts021-lsoa.csv", skip=6) %>%
   dplyr::select("2021 super output area - lower layer",
          "White",
          "%...11") %>%
@@ -101,14 +104,14 @@ Ethnicity <- read_csv("../Data/census2021-ts021-lsoa.csv", skip=6) %>%
   mutate(LSOA_Code = sapply(strsplit(as.character(LSOA_Code), " : "), "[", 1))
 
 # Single-parent household
-SingleParent <- read_csv("../Data/census2021-ts003-lsoa.csv", skip=6) %>%
+SingleParent <- read_csv("../../Data/census2021-ts003-lsoa.csv", skip=6) %>%
   rename("LSOA_Code" = "2021 super output area - lower layer",
          "Single_Parent_Households" = "2021") %>%
   drop_na() %>%
   mutate(LSOA_Code = sapply(strsplit(as.character(LSOA_Code), " : "), "[", 1))
 
 # NS-Socio-Economic Classification
-NS_SEC <- read_csv("../Data/census2021-ts062-lsoa.csv", skip=0) %>%
+NS_SEC <- read_csv("../../Data/census2021-ts062-lsoa.csv", skip=0) %>%
   rename(LSOA_Code = "geography code",
          Total = "National Statistics Socio-economic Classification (NS-SEC): Total: All usual residents aged 16 years and over",
          L1_L2_L3 = "National Statistics Socio-economic Classification (NS-SEC): L1, L2 and L3 Higher managerial, administrative and professional occupations",
@@ -137,7 +140,7 @@ NS_SEC <- read_csv("../Data/census2021-ts062-lsoa.csv", skip=0) %>%
 
 
 # Qualification levels
-Qualifications <- read_csv("../Data/census2021-ts067-lsoa.csv") %>%
+Qualifications <- read_csv("../../Data/census2021-ts067-lsoa.csv") %>%
   dplyr::select("geography code",
          "Highest level of qualification: Total: All usual residents aged 16 years and over",
          "Highest level of qualification: No qualifications",
@@ -159,7 +162,7 @@ Qualifications <- read_csv("../Data/census2021-ts067-lsoa.csv") %>%
            Low_Qualified/Total_residents_over_16*100)
 
 # Urban rural classifications
-Urban_Rural <- read_ods("../Data/Rural_Urban_Classification_2011_lookup_tables_for_small_area_geographies.ods", 
+Urban_Rural <- read_ods("../../Data/Rural_Urban_Classification_2011_lookup_tables_for_small_area_geographies.ods", 
                         sheet = "LSOA11", 
                         skip=2) %>%
   rename("LSOA11CD" = "Lower Super Output Area 2011 Code",
@@ -170,7 +173,7 @@ Urban_Rural <- read_ods("../Data/Rural_Urban_Classification_2011_lookup_tables_f
           "Urban_Rural") 
 
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 # Lookup 2021 LSOA codes
 # left join 2011 Urban Rural classification if LSOA is split into two in 2021. 
 # Split LSOAs - population split between new LSOAs generated in 2011
@@ -228,7 +231,7 @@ MANCH_dataset_full %>% dplyr::select ( -c(
                                    Level_2_qual,
                                    Apprent_qual
                                 )) %>%
-  write_csv( "../Data/MANCH_dataset_full.csv", append = FALSE)
+  write_csv( "../../Data/MANCH_dataset_full.csv", append = FALSE)
 
 # Write dataset to shapefile
 MANCH_dataset_full %>% dplyr::select ( -c(
@@ -246,7 +249,7 @@ MANCH_dataset_full %>% dplyr::select ( -c(
                                    Level_2_qual,
                                    Apprent_qual
                                 )) %>%
-  st_write( "../Data/MANCH_dataset_full_sf.shp", append = FALSE)
+  st_write( "../../Data/MANCH_dataset_full_sf.shp", append = FALSE)
 
 
 

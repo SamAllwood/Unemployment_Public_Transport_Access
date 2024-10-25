@@ -25,25 +25,16 @@ library(sandwich)
 library(stats)
 library(gtsummary)
 library(stargazer)
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # 2. Load Data ------------------------------------------------------------
 MANCH_dataset_full <- read_csv("../../Data/MANCH_dataset_full.csv") %>%
-  dplyr::select(-c("Apprent_qual",
-            "Level_2_qual", 
-            "Level_2_qual", 
-            "No_quals",
-            "Economically_active", 
-            "Unemployed",
-            "Total_Households",
-            "No_Cars", 
-            "Number white"
-            )) %>%
   rename("White_percent" = "% White",
          "Single_parent_household_rate" = "%",
          "Townsuburb" = "twnsbrb",
          "TownNamed" = "TCITY15") 
 
-MANCH_pop_regress <- read_sf("../Data/MANCH_population.shp") %>%
+MANCH_pop_regress <- read_sf("../../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("LSOA_Code" = "LSOA21C",
          "Pop_Dens" = "P_2021_",
@@ -99,13 +90,13 @@ MANCH_data_regress <- MANCH_pop_regress %>%
          )
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
@@ -127,6 +118,7 @@ MANCH_data_regress <- MANCH_data_regress %>%
          )
 
 count(MANCH_data_regress %>% distinct(LSOA_Code))
+
 MANCH_districts_joined <- MANCH_data_regress %>% distinct(LSOA_Code, .keep_all=TRUE) %>%
   group_by(District) %>%
   summarize(geometry = st_union(geometry.x))
@@ -138,7 +130,7 @@ MANCH_districts_joined <- MANCH_data_regress %>% distinct(LSOA_Code, .keep_all=T
     labs(title = "Fixed Effect Area Outlines") +
     theme_void() +
     theme(legend.position = "none"))
-ggsave("Plots/FE_areas.jpeg", plot = FE_boundaries, units = "cm")
+ggsave("Images/FE_areas_GMCA.jpeg", plot = FE_boundaries, units = "cm")
 
 # 3. Assess need for multilevel regression --------------------------------
 # Base model (intercept only) is compared with fixed effects at LAD, town-named or combination 
@@ -178,13 +170,14 @@ FE_areas <- anova %>% as.data.frame() %>%
   rename("Degrees of Freedom" = df) %>%
   mutate(Model = c("Intercept Only", "LAD Fixed Effects", "Town and City Fixed Effects", "Combination Fixed Effects", "MSOA Fixed Effects"),
          "p-value" = c("NA", "<0.001", "<0.001", "<0.001", "<0.001")) %>%
- flextable()
+ flextable() %>%
+  set_caption("Comparison of Fixed Effect Geographies") 
 # Create a Word document
 doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = FE_areas)
 # Save the Word document
-print(doc, target = "../Final_Report/FE_areas_table.docx")
+print(doc, target = "../Final_Report_(GMCA)/FE_areas_table_GMCA.docx")
 
 
 # note BIC has reduced from 8744 to 8393 when allowing the intercept to vary by
@@ -294,7 +287,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = Ins_strength)
 # Save the Word document
-print(doc, target = "../Final_Report/Ins_strength.docx")
+print(doc, target = "../Final_Report_(GMCA)/Ins_strength_GMCA.docx")
 
 # FE model (felm)
 FE_Model <- felm(Unemployment_rate ~ PT_Job_Access_Index +
@@ -426,7 +419,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = IV_diagnostics)
 # Save the Word document
-print(doc, target = "../Final_Report/IV_diag.docx")
+print(doc, target = "../Final_Report_(GMCA)/IV_diag_GMCA.docx")
 
 
 # 7. Model Diagnostics ------------------------------------------------
@@ -441,7 +434,7 @@ vif_initial <- vif(lm(log(Unemployment_rate) ~ PT_Job_Access_Index +
 
 # VIF tabulation
 set_flextable_defaults(digits=2, pct_digits=2, na_str="", width = "1", layout="autofit")
-(vif_ft <- as.data.frame(bind_rows(vif_initial, vif_final)) %>%
+(vif_ft <- as.data.frame(bind_rows(vif_initial)) %>%
   mutate(across(where(is.numeric), ~ round(.x, 2))) %>%
     rename("Public Transport Job Accessibility (PTJA)" = PT_Job_Access_Index,
            "No-car rate (%)" = No_car_rate, 
@@ -451,8 +444,7 @@ set_flextable_defaults(digits=2, pct_digits=2, na_str="", width = "1", layout="a
   t() %>% as.data.frame() %>%
   rownames_to_column() %>%
   rename("Variable" = "rowname",
-         "Initial model" = "V1",
-         "Reduced model" = "V2") %>%
+         "Loglinear model" = "V1") %>%
      flextable() %>%
     set_table_properties( width = 1, layout = "autofit"))
 # Create a Word document
@@ -460,7 +452,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = vif_ft)
 # Save the Word document
-print(doc, target = "../Final_Report/VIFs.docx")
+print(doc, target = "../Final_Report_(GMCA)/VIFs_GMCA.docx")
 
 #2	Correct functional form - good
 # OLS Linear Model for comparison - removed district variable
@@ -553,7 +545,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = reset_test)
 # Save the Word document
-print(doc, target = "../Final_Report/RESET.docx")
+print(doc, target = "../Final_Report_(GMCA)/RESET_GMCA.docx")
 
 # Plot PTJA and unemployment to visually check for non-linearity - doesn't show anything
 plot <- ggplot(MANCH_data_regress, aes(x=Unemployment_rate, y=PT_Job_Access_Index)) + 
@@ -615,7 +607,7 @@ doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = BP_test)
 # Save the Word document
-print(doc, target = "../Final_Report/BP_test.docx")
+print(doc, target = "../Final_Report_(GMCA)/BP_test_GMCA.docx")
 
 #calculate robust standard errors for model coefficients
 coeftest(LogLinear_Model, vcov = vcovHC(LogLinear_Model, type = 'HC0'))
@@ -717,26 +709,27 @@ moran_p_FE_LL_IV <- round(moran_test_FE_LL_IV$p.value,22)
     mutate(across("Moran's I Statistic", ~ format(.x, digits = 2)),
            across("p-value", ~format(.x, digits =2, scientific = TRUE))) %>%
   flextable()%>%
-  set_table_properties( width = 1, layout = "autofit"))
+  set_table_properties( width = 1, layout = "autofit") %>%
+  set_caption("Moran's I statistics for key variables and residuals from models") )
 # Create a Word document
 doc <- read_docx()
 # Add the flextable to the document
 doc <- body_add_flextable(doc, value = moran_table)
 # Save the Word document
-print(doc, target = "../Final_Report/moran_I.docx")
+print(doc, target = "../Final_Report_(GMCA)/moran_I_GMCA.docx")
 
 
 # 6. Compare models FE-IV --------------------------------------------------------------
 ivreg_model_data <- glance(ivreg_model) %>%
-  mutate(Model = "5) IV_FE_Model_ivreg")
+  mutate(Model = "5) FE-LL-IV Model (ivreg package)")
 FE_Model_data <- glance(FE_Model) %>%
-  mutate(Model = "3) FE_Model_felm")
+  mutate(Model = "3) FE Model (felm package)")
 FE_LL_Model_IV_data <- glance(FE_LL_Model_IV)%>%
-  mutate(Model = "4) IV_FE_Model_felm")
+  mutate(Model = "4) FE-LL-IV Model (felm package)")
 Linear_Model_data <- glance(Linear_Model)%>%
-  mutate(Model = "1) Linear_Model_lm")
+  mutate(Model = "1) Linear Model (lm package)")
 LogLinear_Model_data <- glance(LogLinear_Model)%>%
-  mutate(Model = "2) LogLinear_Model_lm")
+  mutate(Model = "2) FE-LL Model (lm package)")
 
 FE_LL_Model_IV_data$AIC <- AIC(FE_LL_Model_IV)
 FE_LL_Model_IV_data$BIC <- BIC(FE_LL_Model_IV)
@@ -773,14 +766,15 @@ ivreg_model_data$BIC <- log(n) * k - 2 * logLik_iv
          "Multiple R-squared" = r.squared,
          "p-value" = p.value) %>%
   flextable() %>%
-  set_table_properties(ft, width = 1, layout = "autofit"))
+  set_table_properties(width = 1, layout = "autofit")) %>%
+  set_caption("Comparison of Linear, Loglinear (LL), Fixed Effects (FE), FE-LL and FE-LL Instrumental Variables (IV) Models")
 
 # Create a Word document
 doc <- read_docx()
 # Add the flextable to the document
-doc <- body_add_flextable(doc, value = ft)
+doc <- body_add_flextable(doc, value = model_comparison)
 # Save the Word document
-print(doc, target = "../Final_Report/model_comparison.docx")
+print(doc, target = "../Final_Report_(GMCA)/model_comparison_GMCA.docx")
 
 # 8. Model Comparisons ------------------------------------------------
 # PTJA coefficients

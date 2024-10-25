@@ -12,10 +12,11 @@ library(classInt)
 library(RColorBrewer)
 library(terra)
 library(ggspatial)
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
-MANCH_dataset_Unemp <- read_sf("../Data/MANCH_dataset_full_sf.shp") %>%
+MANCH_dataset_Unemp <- read_sf("../../Data/MANCH_dataset_full_sf.shp") %>%
   rename("LSOA_Code" = LSOA_Cd,
          "LSOA_Name" = LSOA_Nm,
          "LSOA_Area" = LSOA_Ar,
@@ -39,7 +40,7 @@ MANCH_dataset_Unemp <- read_sf("../Data/MANCH_dataset_full_sf.shp") %>%
 sum(MANCH_dataset_Unemp$Economically_active_residents)
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=200)
@@ -48,24 +49,24 @@ buffered_GMCA_boundary <- st_buffer(GMCA_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Towns and City boundaries
-towns <- st_read("../Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_GMCA <- towns[st_within(towns, GMCA_bound_small_buffer, sparse = FALSE), ]
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Load Metrolink Shapefile
-Metrolink <- st_read("../Data/GM_Metrolink_MapData/SHP-format/Metrolink_Lines_Functional.shp")
+Metrolink <- st_read("../../Data/Metrolink_Lines_Functional.shp")
 Metrolink$LineName <- "Metrolink"
-# town centroids
-towns_centroids <- read_sf("../Data/towns_centroids.shp") #manually updated in 1. TravelTimeMatrix.R
-towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
+# Town centroids
+towns_centres <- read_sf("../../Data/towns_centres.shp") #manually updated in 1. TravelTimeMatrix.R
+towns_centres_GMCA <- towns_centres %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 ## Plot Unemployment rate in GMCA ----------------------------------------
@@ -104,7 +105,7 @@ labels <- c("<=3.1%",
       labs(fill = "Unemployment 
            rate (quintiles)") +
       geom_sf(data=towns_within_GMCA, fill = NA, col = "black", linewidth = 0.3) +
-      geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
+      geom_sf(data=towns_centres_GMCA, shape = 21, fill = 'white', size = 1.5) +
       geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
       geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
       geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
@@ -119,7 +120,7 @@ labels <- c("<=3.1%",
                      pad_y = unit(0, "cm"))+
             theme_void() )
 
-ggsave(file = "Plots/Unemp_rate.jpeg", device = "jpeg", plot = Unemp_rate)
+ggsave(file = "Images/Unemp_rate_GMCA.jpeg", device = "jpeg", plot = Unemp_rate)
 
 # Local Authority District (LAD) map
 (LADs <- MANCH_dataset_Unemp %>%
@@ -143,7 +144,7 @@ labels_Man_unemp <- c("=<4.4%",
 MAN_city_boundary <- towns_within_GMCA %>% filter(TCITY15NM=="Manchester")
 
 (Unemp_rate_Manch_city <- MANCH_city_unemp %>%
-  select (color, Unemployment_rate) %>%
+  dplyr::select (color, Unemployment_rate) %>%
   ggplot() +
 #  geom_sf(data=GMCA_boundary, colour="black",linewidth=1.0) +
 #  geom_sf(data=LADs_MANCH, fill=NA, color = "black", size = 1) +
@@ -157,4 +158,5 @@ MAN_city_boundary <- towns_within_GMCA %>% filter(TCITY15NM=="Manchester")
   annotation_north_arrow()+
     annotation_scale(location = "tr")+
     theme_void())
-ggsave(file = "Plots/Unemp_rate_Man_city.jpeg", device = "jpeg", plot = Unemp_rate_Manch_city)
+
+ggsave(file = "Images/Unemp_rate_Man_city.jpeg", device = "jpeg", plot = Unemp_rate_Manch_city)

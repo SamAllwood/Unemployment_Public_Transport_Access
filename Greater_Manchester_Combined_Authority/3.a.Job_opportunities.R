@@ -10,9 +10,12 @@ library(ggplot2)
 library(classInt)
 library(ggspatial)
 
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
+
+
 # 2. Load Data ------------------------------------------------------------
 # Load Manchester Geo data from file
-MANCH_dataset_jobs <- read_sf("../Data/MANCH_dataset.shp") %>%
+MANCH_dataset_jobs <- read_sf("../../Data/MANCH_dataset.shp") %>%
   rename("LSOA_Code" = "LSOA21C",
          "LSOA_Name" = "LSOA21N",
          "PT_Job_Access_Index" = "PT_Jb_A_I",
@@ -21,18 +24,18 @@ MANCH_dataset_jobs <- read_sf("../Data/MANCH_dataset.shp") %>%
          "Traveltime_empcent" = "Tr__E_C")
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=200)
 
 # Town centres
-towns_centroids <- read_sf("../Data/towns_centroids.shp")
-towns_centroids_Man <- towns_centroids %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
+towns_centres <- read_sf("../../Data/towns_centres.shp")
+towns_centres_Man <- towns_centres %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
-#Town boundaries
-towns <- st_read("../Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+# Town boundaries (as detailed by ONS in 2015)
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_GMCA_buffer <- towns[st_within(towns, GMCA_bound_small_buffer, sparse = FALSE), ]
@@ -61,9 +64,10 @@ labels_jobs <- c("Lowest quintile","","","","Highest quintile")
   scale_fill_brewer(palette = "Spectral", 
                     direction = -1,
                     labels = labels_jobs) +
-  labs(fill = "Job density (quintiles)")+
+  labs(fill = "Job density (quintiles)",
+       title = "Jobs in Greater Manchester Combined Authority")+
     geom_sf(data=towns_within_GMCA_buffer, fill = NA, col = "black", linewidth = 0.3) +
-  geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
+  geom_sf(data=towns_centres_Man, shape = 21, fill = 'white', size = 1.5) +
   geom_label( x=-2.19, y=53.46, label="Manchester", size=3) +
   geom_label( x=-2.321, y=53.50, label="Salford", size=3) +
   geom_label( x=-2.092, y=53.415, label="Stockport", size=3) +
@@ -78,7 +82,7 @@ labels_jobs <- c("Lowest quintile","","","","Highest quintile")
                      pad_y = unit(0, "cm"))+
   theme_void() )
 
-ggsave(file = "Plots/jobs.jpeg", device = "jpeg", plot = jobs)
+ggsave(file = "Images/jobs.jpeg", device = "jpeg", plot = jobs)
 
 # Create job locations variable as % of GMCA jobs
 MANCH_dataset_jobs$Employed_Population_percent <- MANCH_dataset_jobs$Employed_Population*100/sum(MANCH_dataset_jobs$Employed_Population)

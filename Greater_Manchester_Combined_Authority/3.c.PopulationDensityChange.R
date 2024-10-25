@@ -9,29 +9,29 @@ library(sf)
 # 2011 LSOAs 34,753
 # 2021 LSOAs 35,672
 
-setwd("~/Google Drive/My Drive/MSc Urban Transport/1.Dissertation/Programming")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=50)
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../Data/LAD_Dec_2021_GB_BFC_2022/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
-Pop_2001 <- read_csv("../Data/Census2001_UsualPopulation.csv", skip=6) %>%
+Pop_2001 <- read_csv("../../Data/Census2001_UsualPopulation.csv", skip=6) %>%
   rename("LSOA01" = "2001 super output areas - lower layer",
          "Pop_2001" = "2001") %>%
   drop_na() %>%
   mutate(LSOA01 = str_sub(LSOA01,1, 9))%>%
   mutate(Pop_2001 = as.numeric(Pop_2001))
 # Read Towns and City boundaries
-towns <- st_read("../Data/Major_Towns_and_Cities_Dec_2015_Boundaries_V2_2022/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_GMCA <- towns[st_within(towns, GMCA_bound_small_buffer, sparse = FALSE), ]
@@ -39,7 +39,7 @@ towns_within_GMCA <- towns[st_within(towns, GMCA_bound_small_buffer, sparse = FA
 
 # 2001 - 2011 LSOA Conversion --------------------------------------------------
 # Load 2001-2011 LSOA lookup table
-LSOA_lookup_01_11 <- read_csv("../Data/LSOA_2001_2011_lookup.csv")
+LSOA_lookup_01_11 <- read_csv("../../Data/LSOA_2001_2011_lookup.csv")
 
 # Split LSOAs - population split between new LSOAs generated in 2011
 # Join the LSOA lookup table to the dataset
@@ -78,7 +78,7 @@ Pop_2001_corrected_11 <- Pop_2001_corrected_11 %>%
 # 2011 - 2021 LSOA Conversion --------------------------------------------------
 
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup_11_21 <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup_11_21 <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Split LSOAs - population split between new LSOAs generated in 2021
 # Join the LSOA lookup table to the dataset
@@ -116,17 +116,16 @@ Pop_2001_corrected_21 <- Pop_2001_corrected_21 %>%
 
 
 # Load Manchester Dataset Shapefile ---------------------------------------
-
-MANCH_dataset <- read_sf("../Data/MANCH_dataset.shp") 
+MANCH_dataset <- read_sf("../../Data/MANCH_dataset.shp") 
 MANCH_dataset <- MANCH_dataset %>% rename("LSOA21CD" = "LSOA21C",
                                           "LSOA21NM" = "LSOA21N",
                                           "TravelTime_Jobcentre" = "Tr__J_C",
-                                          "PT_Job_Access_Index" = "PT_J_A_",
+                                          "PT_Job_Access_Index" = "PT_Jb_A_I",
                                           "Employed_Population" = "Employd",
                                           "LSOA_Area" = "LSOA__2") 
 
 # Load 2021 Census data on population
-Pop2021 <- read_csv("../Data/Census2021_UsualPopulation.csv", skip=6) %>%
+Pop2021 <- read_csv("../../Data/Census2021_UsualPopulation.csv", skip=6) %>%
   rename("LSOA21CD" = "2021 super output area - lower layer",
          "Usual_Pop_2021" = "2021") %>%
   drop_na() %>%
@@ -144,7 +143,7 @@ MANCH_population <- MANCH_dataset %>%
   mutate(Pop_density_change = Pop_2021_density - Pop_2001_density)
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/GTFS_Data/Combined_Authorities_December_2023/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -180,7 +179,7 @@ MANCH_population  %>%
           geom_sf(data=LADs_MANCH, fill = NA, col = "red", size = 1)  +
           geom_sf(data=towns_within_GMCA, fill = NA, col = "black", size = 1) +
           #    geom_sf(data=towns_centroids_Man, shape = 21, fill = 'white', size = 1.5) +
-          geom_label( x=-2.10, y=53.46, label="Manchester", size=2)+
+          geom_label( x=-2.10, y=53.46, label="Manchester", size=2) +
           geom_label(x=-2.321, y=53.50, label="Salford", size=2) +
           geom_label( x=-2.092, y=53.415, label="Stockport", size=2) +
           geom_label( x=-2.04, y=53.54, label="Oldham", size=2) +
@@ -188,11 +187,12 @@ MANCH_population  %>%
           geom_label( x=-2.25, y=53.585, label="Bury", size=2) +
           geom_label( x=-2.483, y=53.58, label="Bolton", size=2) +
           geom_label( x=-2.58, y=53.54, label="Wigan", size=2) +
-          theme_void() %>%
-    ggsave("Plots/Population_Density_Change.jpg")
+          theme_void() 
+
+ggsave("Images/Population_Density_Change_GMCA.jpg")
 
 # Write as output shapefile
-write_sf(MANCH_population, "../Data/MANCH_population.shp")
+write_sf(MANCH_population, "../../Data/MANCH_population.shp")
 
 # Plot population density in 2021
 # Add Pop density change variable
@@ -210,7 +210,7 @@ breaks_pop <- classIntervals(MANCH_population$Pop_2021_density, n = 5, style = "
 # Create a factor variable for PTJA coloring
 MANCH_population$Pop_density_cat <- cut(MANCH_population$Pop_2021_density, breaks = breaks_pop, include.lowest = TRUE, labels = FALSE)
 MANCH_population$Pop_density_cat <- as.factor(MANCH_population$Pop_density_cat)
-labels_pop <- c("Lowest","","","","Highest")
+labels_pop <- c("< 2200","2200 - 3650","3650 - 5000","5000 - 6500",">6500")
 MANCH_population  %>%
   filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>%
   ggplot() +
@@ -223,3 +223,5 @@ MANCH_population  %>%
        (quintiles)",
        title = "Population Density across GMCA in 2021") +
   theme_void()
+
+ggsave("Images/Population_Density_GMCA.jpg")

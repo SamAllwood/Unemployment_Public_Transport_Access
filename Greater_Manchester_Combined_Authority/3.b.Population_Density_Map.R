@@ -1,6 +1,7 @@
 ## Script for map of population density in GMCA
 ## Credit to Niloy Biswas on medium and on github. Licensed under Apache 2.0 license.
 # 1. Setup ----------------------------------------------------------------
+#NOTE need to create the MANCH_Population.shp dataset in the 3c.PopulationDensityChange.R script before this will run
 
 options(rgl.useNULL = FALSE)
 
@@ -18,10 +19,11 @@ require(magick)
 require(extrafont)
 library(stars)
 
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "Population_Density_Change.R" script
-MAN_pop <- read_sf("../Data/MANCH_population.shp") %>%
+MAN_pop <- read_sf("../../Data/MANCH_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA21CD" = "LSOA21C",
@@ -37,7 +39,6 @@ ggplot(MAN_pop) +
 
 
 # Create Bounding Box -----------------------------------------------------
-
 # setting the boundary as a bounding box
 bbox <- st_bbox(MAN_pop) %>%
   st_set_crs(4326)
@@ -109,7 +110,29 @@ swatchplot(tx)
  tx_subset <- grDevices::colorRampPalette(subset_colors, bias = 1)(256)
  swatchplot(tx_subset)
 
-
+ 
+ # Create a ggplot2 plot with a title
+ plot <- ggplot(MAN_pop) +
+   geom_sf(aes(fill = Man_Pop_Dens),
+           color = "gray66",
+           linewidth = 0) +
+   theme_minimal() +
+   labs(title = "Population Density in Greater Manchester",
+        x = "Longitude",
+        y = "Latitude")
+ 
+# Convert the ggplot2 plot to a rayshader plot
+ plot_3d <- plot_gg(plot, width = 5, 
+                    height = 5, 
+                    scale = 300,
+                    )+
+   theme_minimal()
+ 
+ # Render the plot with render_highquality
+ # render_highquality(plot_3d, filename = "Images/Population_Density_Change.jpg")
+ 
+ 
+ 
 # plotting 3D
 # Close any existing 3D plot before plotting another
 rgl::close3d()
@@ -129,7 +152,7 @@ render_camera(theta = 0,
 )
 
 
-outfile <- glue::glue("Plots/Manch_Pop.png")
+outfile <- glue::glue("Images/Population_GMCA.jpeg")
 
 {
   start_time <- Sys.time()
