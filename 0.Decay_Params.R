@@ -64,8 +64,8 @@ Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePerc
   mutate(CommutePercentage_NW = round(CommutePercentage_NW, 1),
          CommutePercentage_UK = round(CommutePercentage_UK, 1)) %>%
   mutate("Year" = as.character(Year)) %>%
-  rename("NorthWest \n England (%)" = CommutePercentage_NW,
-         "UK (%)" = CommutePercentage_UK) %>%
+  rename("NorthWest \n Region (%)" = CommutePercentage_NW,
+         "England (%)" = CommutePercentage_UK) %>%
   flextable() %>%
   set_table_properties(layout = "autofit") %>%
   add_header_lines(values = c("Public Transport Commuting Modeshare in NorthWest England, 2002 - 2022")) %>%

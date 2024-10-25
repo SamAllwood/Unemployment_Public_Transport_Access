@@ -16,9 +16,10 @@ options(java.parameters = "-Xmx8G")
 options(timeout = 1000)
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Greater_Manchester_Combined_Authority")
 
 # GMCA Boundary + buffer
-Boundaries <- read_sf("../Data/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
 GMCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester") %>%
   st_transform(4326) 
 GMCA_bound_small_buffer <- GMCA_boundary %>% st_buffer(dist=25)
@@ -28,14 +29,14 @@ buffered_GMCA_boundary <- st_buffer(GMCA_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../Data/LAD_DEC_2021_GB_BFC.shp") %>% # too large for github but available from ONS Geoportal
+LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>% 
   st_transform(4326)
 # Filter LADs within GMCA
 LADs_MANCH <- LADs %>% filter(as.vector(st_within(., GMCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 
 # Read LSOA population-weighted centroids
-lsoas <- st_read("../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
+lsoas <- st_read("../../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
   st_transform(4326) %>%
   st_make_valid() %>%
   rename(id = LSOA21CD) 
@@ -47,39 +48,34 @@ lsoa_PWC_within_GMCA_buffer <- lsoas %>%
   filter(as.vector(st_within(., buffered_GMCA_boundary, sparse = FALSE))) 
 
 # Read LSOA boundaries (too large for github but available on ONS Geoportal)
-lsoa_boundaries <- st_read("../Data/LSOA_2021_EW_BFC_V8.shp") %>% 
+lsoa_boundaries <- st_read("../../Data/LSOA_2021_EW_BFC_V8.shp") %>% 
   st_transform(4326) %>%
   st_make_valid() 
-# Calculate LSOA area
-lsoa_boundaries$LSOA_area <- st_area(lsoa_boundaries$geometry)
-lsoa_boundaries$LSOA_area_km2 <- lsoa_boundaries$LSOA_area/1000000
 
 # Filter LSOA boundaries for GMCA
 lsoa_boundaries_within_GMCA_buffer <- lsoa_boundaries[st_within(lsoa_boundaries, 
                                                                 buffered_GMCA_boundary, 
                                                                 sparse = FALSE), ]
+
 lsoa_boundaries_within_GMCA <- lsoa_boundaries[st_within(lsoa_boundaries, 
                                                          GMCA_bound_small_buffer, 
                                                          sparse = FALSE), ]
+
+# Calculate LSOA area
+lsoa_boundaries_within_GMCA_buffer$LSOA_area <- st_area(lsoa_boundaries_within_GMCA_buffer$geometry)
+lsoa_boundaries_within_GMCA_buffer$LSOA_area_km2 <- lsoa_boundaries_within_GMCA_buffer$LSOA_area/1000000
+lsoa_boundaries_within_GMCA$LSOA_area <- st_area(lsoa_boundaries_within_GMCA$geometry)
+lsoa_boundaries_within_GMCA$LSOA_area_km2 <- lsoa_boundaries_within_GMCA$LSOA_area/1000000
+
+
 # Read Towns and City boundaries
-towns <- st_read("../Data/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) %>%
   st_make_valid()
 towns_within_GMCA_buffer <- towns[st_within(towns, buffered_GMCA_boundary, sparse = FALSE), ]
 
-# Towns and City centroids
-towns_centroids <- st_centroid(towns_within_GMCA_buffer) %>%
-  rename(id = TCITY15CD) %>% st_transform(4326)
-# Geometric centroids are in unrepresentative places, so manually identify town/city centres
-towns_manual_MAN <- data.frame(
-  id = c("Manchester", "Salford", "Stockport", "Oldham", "Rochdale", "Bury", "Bolton", "Wigan"),
-  lon = c(-2.243185, -2.277002, -2.161260, -2.112658, -2.153749, -2.297645, -2.429588, -2.630668), # Updated longitudes
-  lat = c(53.478214, 53.485645, 53.406539, 53.540754, 53.611260, 53.592658, 53.578226, 53.545255)  # Updated latitudes
-) %>%
-  st_as_sf(coords = c("lon", "lat"), crs = 4326) # convert directly to sf
-
-# Adjust LSOAs within town boundaries - manual corrections to tidy up intersections where town boundaries and LAD boundaries 
-# overlap
+# Adjust LSOAs within town boundaries - manual corrections to tidy up intersections where 
+# town boundaries and LAD boundaries overlap
 towns_with_buffer <- towns_within_GMCA_buffer %>% st_buffer(dist=400)
 lsoa_with_town_info <- st_join(lsoa_boundaries_within_GMCA, towns_with_buffer, join = st_within)
 lsoa_with_town_info <- lsoa_with_town_info %>%
@@ -94,7 +90,7 @@ lsoa_with_town_info <- lsoa_with_town_info %>%
 lsoa_with_town_info$townsuburb <- ifelse(is.na(lsoa_with_town_info$TCITY15NM), "Suburb", "Urban") 
 lsoa_with_town_info$TCITY15NM <- ifelse(is.na(lsoa_with_town_info$TCITY15NM), "Suburb", lsoa_with_town_info$TCITY15NM)
 lsoa_with_town_info_min <- lsoa_with_town_info %>%  
-  select(LSOA21CD, 
+  dplyr::select(LSOA21CD, 
          LSOA21NM, 
          geometry, 
          LSOA_area_km2, 
@@ -103,8 +99,18 @@ lsoa_with_town_info_min <- lsoa_with_town_info %>%
   as.data.frame() %>% 
   distinct(LSOA21CD, .keep_all=TRUE)
 
+# Towns and City centroids
+# Geometric centroids are in unrepresentative of actual town centres, so manually identify town/city centres 
+# in Google maps and take coordinates input here
+towns_manual_MAN <- data.frame(
+  id = c("Manchester", "Salford", "Stockport", "Oldham", "Rochdale", "Bury", "Bolton", "Wigan"),
+  lon = c(-2.243185, -2.277002, -2.161260, -2.112658, -2.153749, -2.297645, -2.429588, -2.630668), # Updated longitudes
+  lat = c(53.478214, 53.485645, 53.406539, 53.540754, 53.611260, 53.592658, 53.578226, 53.545255)  # Updated latitudes
+) %>%
+  st_as_sf(coords = c("lon", "lat"), crs = 4326) # convert directly to sf
+
 # Employed Residents
-Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Economically active (excluding full-time students)") %>%
@@ -114,16 +120,16 @@ Employment <-read_csv("../Data/census2021-ts066/census2021-ts066-lsoa.csv") %>%
 
 # Business Register and Employment Survey (BRES) --------------------------------------------------------------------
 # Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
-BRES <- read_csv("../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
+BRES <- read_csv("../../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
   separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
   rename("Employed" = "...2") %>%
   dplyr::select(-c("...3", "...4","...5")) %>%
   na.omit()
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Jobcentre locations
-Jobcentre_plus_geocoded <- read_csv("../Data/Jobcentre_locations_geocoded.csv")
+Jobcentre_plus_geocoded <- read_csv("../../Data/Jobcentre_locations_geocoded.csv")
 
 # Specify location of Manchester City Centre - St. Peter's Square
 MAN_CC <- 
@@ -141,10 +147,9 @@ MAN_CC_point <-
 # file.remove("./r5r/geofabrik_england-latest.osm.pbf")
 # oe_download(file_url = england_pbf, download_directory = "./r5r")
 
-
 # 4. R5R Network Setup -------------------------------------------------------
 # Get input files
-input_files <- list.files("../Data/GTFS_Data", 
+input_files <- list.files("../../Data/r5r_Data", 
   recursive = TRUE,
   pattern = 'gtfs\\.zip$|pbf$',
   full.names = TRUE)
@@ -158,7 +163,7 @@ input_files
 
 # Read multi-modal network
 gc() # this setup step requires quite a bit of memory, so best to gc first
-r5r_core <- setup_r5(data_path = "../Data/GTFS_Data", 
+r5r_core <- setup_r5(data_path = "../../Data/r5r_Data", 
                      verbose=TRUE,
                      overwrite = FALSE) 
 summary(r5r_core)
@@ -189,8 +194,8 @@ MAN_TTM_CC <-
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE) %>%
-  rename("Traveltime_CC" = "travel_time_p50") %>%
-  select(-"to_id")
+  rename("Traveltime_CC" = "travel_time_p50") #%>%
+  dplyr::select(-"to_id")
 
 # Extended travel time matrix shows more, takes longer, but helpful for diagnostics
 MAN_ETTM_CC <-
@@ -221,7 +226,7 @@ MAN_TTM_Emp <-
 # Calculate the closest employment centre for each LSOA
 closest_emp_centre_LSOA <- MAN_TTM_Emp %>%
   group_by(from_id) %>%
-  summarize(closest_empcentre = min(travel_time_p50, na.rm = TRUE))
+  summarize(closest_empcentre = min(travel_time_p50))
 
 # Travel Time to employment centres - comparisons --------------------------------------------
 MAN_comp_ttm <-
@@ -289,7 +294,7 @@ MANCH_ttm <-
     mode = mode,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = max_duration,
+#    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE)
@@ -302,7 +307,7 @@ MANCH_ttm_bus <-
     mode = c("BUS", "WALK"),
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = max_duration,
+#    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE)
@@ -315,7 +320,7 @@ MANCH_ttm_tram <-
     mode = "TRAM",
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = max_duration,
+#    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE)
@@ -328,7 +333,7 @@ MANCH_ttm_walk <-
     mode =  "WALK",
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = max_duration,
+#    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE)
@@ -394,7 +399,7 @@ MANCH_ttm_buffer <-
     mode = mode,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = max_duration,
+#    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE)
@@ -436,5 +441,5 @@ MANCH_dataset <- MANCH_TT_Jobcentre %>%
   left_join(job_access_demand, by = c("LSOA21CD"="id")) 
 
 # Write datasets to shapefiles
-st_write(MANCH_dataset, "../Data/MANCH_dataset.shp", append=FALSE)
-st_write(towns_manual_MAN, "../Data/towns_centroids.shp", append=FALSE)
+st_write(MANCH_dataset, "../../Data/MANCH_dataset.shp", append=FALSE)
+st_write(towns_manual_MAN, "../../Data/towns_centres.shp", append=FALSE)
