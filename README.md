@@ -6,7 +6,7 @@ Public transport job accessibility distribution for an area calculated by summin
 
 Greater Manchester Combined Authority (left) and Liverpool City Region (right). 
 <div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D.jpeg" width="400">
+  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" width="400">
   <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
 </div>
 
@@ -14,7 +14,7 @@ Greater Manchester Combined Authority (left) and Liverpool City Region (right).
 An [interactive map of Liverpool City Region PTJA](https://samallwood.github.io/Unemployment_Public_Transport_Access/)
 
 ### Population Distribution in GMCA
-<img src="Greater_Manchester_Combined_Authority/Images/Manch_Pop.png" alt="Pop_dens" width="400">
+<img src="Greater_Manchester_Combined_Authority/Images/Manch_Pop_GMCA.png" alt="Pop_dens" width="400">
 
 Created using Niloy Biswas's [population density map](https://github.com/niloy-biswas/Population-Density-Map/) method.
 
