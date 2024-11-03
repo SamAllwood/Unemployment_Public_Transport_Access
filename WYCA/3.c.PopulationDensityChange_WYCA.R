@@ -4,32 +4,27 @@ library(tidyverse)
 library(knitr)
 library(sf)
 
-## QUANTITIES OF LSOAS FOR REFERENCE
-# 2001 LSOAs 34,378
-# 2011 LSOAs 34,753
-# 2021 LSOAs 35,672
-
-setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
+setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/WYCA")
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
 
-# LCR Boundary + buffer
+# WYCA Boundary + buffer
 Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
-LCR_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
+WYCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
   st_transform(4326) 
-LCR_bound_small_buffer <- LCR_boundary %>% st_buffer(dist=1000)
+WYCA_bound_small_buffer <- WYCA_boundary %>% st_buffer(dist=1000)
 
 # Read Local Authority District (LAD) boundaries
 LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 
 # Town centres
-towns_centres_LCR <- read_sf("../../Data/towns_centres_LCR.shp") %>% 
+towns_centres_WYCA <- read_sf("../../Data/towns_centres_WYCA.shp") %>% 
   st_transform(4326) %>%
   filter(buffer == "N") 
 
-# Filter LADs within LCR
-LADs_LCR <- LADs %>% filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>% 
+# Filter LADs within WYCA
+LADs_WYCA <- LADs %>% filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
 Pop_2001 <- read_csv("../../Data/Census2001_UsualPopulation.csv", skip=6) %>%
   rename("LSOA01" = "2001 super output areas - lower layer",
@@ -42,7 +37,7 @@ Pop_2001 <- read_csv("../../Data/Census2001_UsualPopulation.csv", skip=6) %>%
 towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
-towns_within_LCR <- towns[st_within(towns, LCR_bound_small_buffer, sparse = FALSE), ]
+towns_within_WYCA <- towns[st_within(towns, WYCA_bound_small_buffer, sparse = FALSE), ]
 
 
 # 2001 - 2011 LSOA Conversion --------------------------------------------------
@@ -123,9 +118,9 @@ Pop_2001_corrected_21 <- Pop_2001_corrected_21 %>%
 
 
 
-# Load Liverpool Dataset Shapefile ---------------------------------------
+# Load West Yorkshire Dataset Shapefile ---------------------------------------
 
-LCR_dataset <- read_sf("../../Data/LCR_dataset.shp") %>%
+WYCA_dataset <- read_sf("../../Data/WYCA_dataset.shp") %>%
                rename("LSOA21CD" = "LSOA21C",
                       "LSOA21NM" = "LSOA21N",
                       "PT_Job_Access_Index" = "PT_Jb_A_I",
@@ -141,8 +136,8 @@ Pop2021 <- read_csv("../../Data/Census2021_UsualPopulation.csv", skip=6) %>%
   mutate(Usual_Pop_2021 = as.numeric(Usual_Pop_2021))
 sum(Pop2021$Usual_Pop_2021, na.rm = TRUE)/sum(Pop_2001_corrected_21$Pop_2001_corrected_21, na.rm = TRUE)
 
-# Join the population datasets to the LCR dataset
-LCR_population <- LCR_dataset %>%
+# Join the population datasets to the WYCA dataset
+WYCA_population <- WYCA_dataset %>%
   left_join(Pop_2001_corrected_21, by = "LSOA21CD") %>%
   left_join(Pop2021, by = "LSOA21CD") %>%
   dplyr::select(LSOA21CD, LSOA21NM, Pop_2001_corrected_21, Usual_Pop_2021, LSOA_Area) %>%
@@ -150,15 +145,15 @@ LCR_population <- LCR_dataset %>%
   mutate(Pop_2021_density = Usual_Pop_2021 / LSOA_Area) %>%
   mutate(Pop_density_change = Pop_2021_density - Pop_2001_density)
 
-# Average Population Density in LCR
-Total_pop_21 <- sum(LCR_population$Usual_Pop_2021)
-Mean_pop_dens21 <- Total_pop_21 / sum(LCR_population$LSOA_Area)
+# Average Population Density in WYCA
+Total_pop_21 <- sum(WYCA_population$Usual_Pop_2021)
+Mean_pop_dens21 <- Total_pop_21 / sum(WYCA_population$LSOA_Area)
 Mean_pop_dens21
-Total_pop_01 <- sum(LCR_population$Pop_2001_corrected_21)
-Mean_pop_dens01 <- Total_pop_01 / sum(LCR_population$LSOA_Area)
+Total_pop_01 <- sum(WYCA_population$Pop_2001_corrected_21)
+Mean_pop_dens01 <- Total_pop_01 / sum(WYCA_population$LSOA_Area)
 Mean_pop_dens01
 # Add Pop density change variable
-LCR_population <- LCR_population  %>%
+WYCA_population <- WYCA_population  %>%
   mutate(Pop_density_change = as.numeric(Pop_density_change), # Ensure variable is numeric
          Pop_dens_change_cat = cut(Pop_density_change,
                                    breaks = c(-30000, 0, 500, 1500, 30000),
@@ -169,45 +164,45 @@ LCR_population <- LCR_population  %>%
                                               "dP >= 1500"))) 
 
 # Plot Population Density Change 2001 - 2021
-LCR_population  %>%
-      filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>%
+WYCA_population  %>%
+      filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>%
           ggplot() +
-  #          geom_sf(data=LCR_boundary, colour="black",linewidth=1.5) +
+  #          geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
             geom_sf(aes(fill = Pop_dens_change_cat), color = NA) +
             scale_fill_brewer() +
             labs(fill=" Population Change per
             square kilometer",
-                 title = "Population Density Change across LCR from 2001-2021") +
- #           geom_sf(data=LADs_LCR, fill = NA, col = "red", size = 1)  +
-            geom_sf(data=towns_within_LCR, fill = NA, col = "black", size = 1) +
-            geom_sf(data=towns_centres_LCR, shape = 21, fill = 'white', size = 1.5) +
+                 title = "Population Density Change across WYCA from 2001-2021") +
+ #           geom_sf(data=LADs_WYCA, fill = NA, col = "red", size = 1)  +
+            geom_sf(data=towns_within_WYCA, fill = NA, col = "black", size = 1) +
+            geom_sf(data=towns_centres_WYCA, shape = 21, fill = 'white', size = 1.5) +
             geom_label( x=-2.88, y=53.40, label="Liverpool", size=3) +
             geom_label( x=-2.73, y=53.43, label="St. Helens", size=3) +
             geom_label( x=-3.10, y=53.64, label="Southport", size=3) +
             geom_label( x=-3.12, y=53.39, label="Birkenhead", size=3) +
             theme_void() 
 
-ggsave(file = "Images/Population_Density_Change_LCR.jpg", device = "jpeg")
+ggsave(file = "Images/Population_Density_Change_WYCA.jpg", device = "jpeg")
 
 # Write as output shapefile
-write_sf(LCR_population, "../../Data/LCR_population.shp")
+write_sf(WYCA_population, "../../Data/WYCA_population.shp")
 
 # Calculate Pop_density quantile breaks
-breaks_pop <- classIntervals(LCR_population$Pop_2021_density, n = 5, style = "quantile")$brks
+breaks_pop <- classIntervals(WYCA_population$Pop_2021_density, n = 5, style = "quantile")$brks
 # Create a factor variable for PTJA coloring
-LCR_population$Pop_density_cat <- cut(LCR_population$Pop_2021_density, breaks = breaks_pop, include.lowest = TRUE, labels = FALSE)
-LCR_population$Pop_density_cat <- as.factor(LCR_population$Pop_density_cat)
+WYCA_population$Pop_density_cat <- cut(WYCA_population$Pop_2021_density, breaks = breaks_pop, include.lowest = TRUE, labels = FALSE)
+WYCA_population$Pop_density_cat <- as.factor(WYCA_population$Pop_density_cat)
 labels_pop <- c("<2,100","2,100 - 3,800","3,800 - 5,100","5,100 - 6,500","> 6,500")
-LCR_population  %>%
-  filter(as.vector(st_within(., LCR_bound_small_buffer, sparse = FALSE))) %>%
+WYCA_population  %>%
+  filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>%
   ggplot() +
-  #          geom_sf(data=LCR_boundary, colour="black",linewidth=1.5) +
+  #          geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
   geom_sf(aes(fill = Pop_density_cat), color = NA) +
   scale_fill_brewer(palette = "Spectral", 
                     direction = -1,
                     labels = labels_pop) +
   labs(fill=" Population per square kilometer
        (quintiles)",
-       title = "Population Density across LCR in 2021") +
+       title = "Population Density across WYCA in 2021") +
   theme_void()
-ggsave(file = "Images/Population_Density_LCR.jpg", device = "jpeg")
+ggsave(file = "Images/Population_Density_WYCA.jpg", device = "jpeg")

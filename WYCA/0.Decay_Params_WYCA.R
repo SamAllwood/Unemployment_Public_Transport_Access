@@ -11,11 +11,11 @@ library(flextable)
 library(officer)
 library(MASS)
 
-setwd("/Users/samallwood/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access")
+setwd("/Users/samallwood/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/WYCA")
 # Read datasets. Available from the UK Data Service website.
-individual <- read_tsv("../Data/individual_eul_2002-2022.tab") 
-trip <- read_tsv("../Data/trip_eul_2002-2022.tab")
-household <- read_tsv("../Data/household_eul_2002-2022.tab")
+individual <- read_tsv("../../Data/individual_eul_2002-2022.tab") 
+trip <- read_tsv("../../Data/trip_eul_2002-2022.tab")
+household <- read_tsv("../../Data/household_eul_2002-2022.tab")
 
 #create subsets of interesting variables
 ind_subset <- dplyr::select(individual,
@@ -42,15 +42,15 @@ data <- left_join(trip_subset, ind_subset, by="IndividualID") %>%
   mutate("Year" = substr(IndividualID, 1, 4) ) %>% 
   mutate(Year = as.numeric(Year)) 
 
-# commuting summary data over past 20 years - NorthWest region
-commute_summary_NW <- data %>% 
-  filter(IndWkGOR_B02ID==2) %>% #filter for NW region
+# commuting summary data over past 20 years - Yorkshire and the Humber region
+commute_summary_York <- data %>% 
+  filter(IndWkGOR_B02ID==3) %>% #filter for Yorkshire and the Humber region
   filter(TripPurpose_B04ID == 1 ) %>% #filter for commuting trips
   group_by(Year) %>%
   summarise(
     Annual_Commutes = n(),
     Annual_PT_Commutes = sum(MainMode_B04ID %in% c(7,8,9,10,11,12,13))) %>%
-  mutate(CommutePercentage_NW = (Annual_PT_Commutes / Annual_Commutes) * 100)
+  mutate(CommutePercentage_York = (Annual_PT_Commutes / Annual_Commutes) * 100)
 # commuting summary data over past 20 years - UK
 commute_summary_UK <- data %>% filter(TripPurpose_B04ID == 1 ) %>%
   group_by(Year) %>%
@@ -59,23 +59,23 @@ commute_summary_UK <- data %>% filter(TripPurpose_B04ID == 1 ) %>%
     Annual_PT_Commutes = sum(MainMode_B04ID %in% c(7,8,9,10,11,12,13))) %>%
   mutate(CommutePercentage_UK = (Annual_PT_Commutes / Annual_Commutes) * 100)
 #summary table
-Commuting <- as.data.frame(c(dplyr::select(commute_summary_NW, Year, CommutePercentage_NW),
+Commuting <- as.data.frame(c(dplyr::select(commute_summary_York, Year, CommutePercentage_York),
                 dplyr::select(commute_summary_UK,  CommutePercentage_UK))) %>%
-  mutate(CommutePercentage_NW = round(CommutePercentage_NW, 1),
+  mutate(CommutePercentage_York = round(CommutePercentage_York, 1),
          CommutePercentage_UK = round(CommutePercentage_UK, 1)) %>%
   mutate("Year" = as.character(Year)) %>%
-  rename("NorthWest \n Region (%)" = CommutePercentage_NW,
+  rename("Yorkshire \n Region (%)" = CommutePercentage_York,
          "England (%)" = CommutePercentage_UK) %>%
   flextable() %>%
   set_table_properties(layout = "autofit") %>%
-  add_header_lines(values = c("Public Transport Commuting Modeshare in NorthWest England, 2002 - 2022")) %>%
+  add_header_lines(values = c("Public Transport Commuting Modeshare in Yorkshire and Humber region, England, 2002 - 2022")) %>%
   add_footer_lines(values = c("Source: National Travel Survey 2002-2022")) 
 
 
 # Create a Word document with table
 doc <- read_docx()
 doc <- body_add_flextable(doc, value = Commuting)
-print(doc, target = "Final_Report_(GMCA)/Commuting.docx")
+print(doc, target = "Images/Commuting.docx")
 
 # Some summary figures
 number_commutes <- data %>% filter(TripPurpose_B04ID == 1) %>% nrow()
@@ -86,19 +86,19 @@ commute_PT_pc <- num_PT_commutes/number_commutes*100
 # Filter only the walking trips and commuting purpose
 walking_trips <- data %>% filter(MainMode_B04ID == 1) %>% filter(TripPurpose_B04ID==1)
 # Calculate the 99th percentile of the 'TripTotalTime' column
-quantile_walk_99 <- quantile(walking_trips$TripTotalTime, 0.99)
-
+quantile_walk_99 <- quantile(walking_trips$TripTotalTime, 0.99) # this calculation shows 
+                                                            # 1% of the walk durations exceed 60mins
 # Calculate Commuting Time ------------------------------------------------
-commuting_trips_A <- data %>% filter(TripPurpose_B04ID==1) # leaves 824436 trips
+commuting_trips_A <- data %>% filter(TripPurpose_B04ID==1)
 # filter for NorthWest region
-commuting_trips_NW <- commuting_trips_A %>% filter(IndWkGOR_B02ID==2) # leaves 91914 trips
+commuting_trips_York <- commuting_trips_A %>% filter(IndWkGOR_B02ID==3) 
 # filter for public transport trips
-commuting_trips_NW_PT <- commuting_trips_NW %>% filter(MainMode_B04ID %in% c(7,8,9,10,11,12,13)) # leaves 11680 trips
+commuting_trips_York_PT <- commuting_trips_York %>% filter(MainMode_B04ID %in% c(7,8,9,10,11,12,13)) 
 # Calculate the 99th percentile of the 'TripTotalTime' column
-quantile_commute_99 <- quantile(commuting_trips_NW_PT$TripTotalTime, 0.99) # this calculation shows 
+quantile_commute_99 <- quantile(commuting_trips_York_PT$TripTotalTime, 0.99) # this calculation shows 
                                                                      # 1% of the commute times exceed 120mins
-# filter realistic daily commuting durations (between 1 and 120mins) - leaves 11568 trips
-commuting_trips <- commuting_trips_NW_PT %>% 
+# filter realistic daily commuting durations (between 1 and 120mins) 
+commuting_trips <- commuting_trips_York_PT %>% 
   filter(TripTotalTime<=121) %>%
   filter(TripTotalTime>1)
 
@@ -118,8 +118,8 @@ plot_data <- data.frame(TripTotalTime = unique(commuting_trips$TripTotalTime),
 # Fit a logistic distribution to travel data
 fit <- fitdistr(commuting_trips$TripTotalTime, "logistic")
 
-mean <- fit$estimate[1] # 39.7
-sd <- fit$estimate[2] # 12.6
+mean <- fit$estimate[1] # 40.3
+sd <- fit$estimate[2] # 12.8
 
 
 # PLOTS
@@ -144,9 +144,10 @@ CDF <- ggplot(plot_data, aes(x = TripTotalTime, y = CDF)) +
   scale_color_manual(values = c("CDF" = "blue", "Estimated Logistic Decay Curve" = "red")) +
   labs(x = "Trip Total Time", 
        y = "Density", 
-       title = "Cumulative Density Function (CDF) of Trip Total Time \n and Calculated Logistic Decay Curve",
+       title = "Cumulative Density Function (CDF) of Trip Total Time \n and Calculated Logistic Decay Curve
+       `n for Yorkshire and the Humber region",
        caption = "Red line shows the curve calculated from the derived parameters, and the blue line is the 
        cumulative density function of the actual commuting travel data. \n Data Source: National Travel Survey 2002-2022"
        )
 
-ggsave("0.CumDenFun_LogisticDecay.jpeg", CDF, width = 10, height = 6)
+ggsave("0.CumDenFun_LogisticDecay_Yorkshire.jpeg", CDF, width = 10, height = 6)
