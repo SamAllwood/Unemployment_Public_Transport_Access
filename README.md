@@ -10,7 +10,7 @@ Greater Manchester Combined Authority (left) and Liverpool City Region (right) a
   <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
 </div>
 <div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="WYCA/Images/PTJA_D_WYCA.jpeg" width="400">
+  <img src="WYCA/Images/PTJA_D.jpeg" width="400">
 </div>
 
 ### Interactive Mapping (under development)
