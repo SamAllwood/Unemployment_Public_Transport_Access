@@ -12,8 +12,8 @@ library(here)
 # 2. Load and Filter Datasets ------------------------------------------------------------
 # Combined Authority Boundary + buffer
 Boundaries <- read_sf("../Data/CAUTH_DEC_2023_EN_BFC.shp")
-CA_boundary <- Boundaries %>% filter(CAUTH23NM == "Greater Manchester" | 
-                                       CAUTH23NM =="Liverpool City Region" | 
+CA_boundary <- Boundaries %>% filter(#CAUTH23NM == "Greater Manchester" | 
+                                     #  CAUTH23NM =="Liverpool City Region" | 
                                        CAUTH23NM =="West Yorkshire") %>%
   st_transform(4326) 
 #mapview(CA_boundary)
@@ -30,7 +30,7 @@ combined_area <- st_union(buffered_CA_boundary)
 BODS <- gtfstools::read_gtfs("../Data/r5r_data/itm_all_gtfs.zip") # Download from BODS
 # Filter BODS stops in CAs
 BODS_CA <- filter_by_spatial_extent(BODS, buffered_CA_boundary)
-gtfstools::write_gtfs(BODS_CA, "../Data/r5r_data/BODS_CA.gtfs.zip")
+gtfstools::write_gtfs(BODS_CA, "../Data/r5r_data/CA/BODS_CA.gtfs.zip")
 
 # Transform ATOC (rail data) ----------------------------------------------
 # Uses UK2GTFS V. ‘0.1.1’
@@ -61,10 +61,11 @@ na_columns <- colSums(is.na(stops)) > 0
 print(na_columns)
 
 # Update the GTFS stops data
-ttis272$stops <- stops
+ttis272_corrected <- ttis272
+ttis272_corrected$stops <- stops
 
 ## Force valid. This function does not fix problems, it just removes them
-ttis272_gtfs <- UK2GTFS::gtfs_force_valid(ttis272)
+ttis272_gtfs <- UK2GTFS::gtfs_force_valid(ttis272_corrected)
 UK2GTFS::gtfs_validate_internal(ttis272_gtfs)
 
 ## Compare original and valid
@@ -80,6 +81,8 @@ count(gtfs_diff, stop_id)
 # Trips affected
 unique(gtfs_diff$trip_id)
 
+# map the eliminated stop_ids somehow
+
 UK2GTFS::gtfs_write(ttis272_gtfs, 
                     quote = TRUE, 
                     folder = "../Data/r5r_data", 
@@ -88,7 +91,7 @@ rail_gtfstools <- gtfstools::read_gtfs("../Data/r5r_data/rail.gtfs.zip")
 rail_CA_gtfs <- filter_by_spatial_extent(rail_gtfstools, buffered_CA_boundary)
 UK2GTFS::gtfs_validate_internal(rail_CA_gtfs)
 
-gtfstools::write_gtfs(rail_CA_gtfs, "../Data/r5r_data/rail_CA.gtfs.zip")
+gtfstools::write_gtfs(rail_CA_gtfs, "../Data/r5r_data/CA/rail_CA.gtfs.zip")
 
 
 latest_validator <- download_validator(tempdir())

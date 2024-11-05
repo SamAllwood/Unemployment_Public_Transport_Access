@@ -16,10 +16,8 @@ options(timeout = 1000)
 options(scipen=999)
 
 # 2. Load and Filter Datasets ------------------------------------------------------------
-setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/WYCA")
-
 # WYCA Boundary + buffer
-Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
+Boundaries <- read_sf("../Data/CAUTH_DEC_2023_EN_BFC.shp")
 WYCA_boundary <- Boundaries %>% filter(CAUTH23NM == "West Yorkshire") %>%
   st_transform(4326) 
 WYCA_bound_small_buffer <- WYCA_boundary %>% st_buffer(dist=25)
@@ -29,7 +27,7 @@ buffered_WYCA_boundary <- st_buffer(WYCA_boundary, dist = 20000) %>%
   st_transform(4326)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 # Filter LADs within WYCA
 LADs_WYCA <- LADs %>% filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>% 
@@ -37,7 +35,7 @@ LADs_WYCA <- LADs %>% filter(as.vector(st_within(., WYCA_bound_small_buffer, spa
 # mapview(LADs_WYCA)+mapview(WYCA_boundary)
 
 # Read LSOA pop-weighted centroids
-lsoas <- st_read("../../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
+lsoas <- st_read("../Data/LSOA_PopCentroids_EW_2021_V3.shp") %>%
   st_transform(4326)
 # Filter LSOA PW-centroids
 lsoas <- st_make_valid(lsoas)
@@ -52,7 +50,7 @@ lsoa_PWC_within_WYCA_buffer$geometry <- st_transform(lsoa_PWC_within_WYCA_buffer
 lsoa_PWC_within_WYCA$geometry <- st_transform(lsoa_PWC_within_WYCA$geometry, 4326)
 
 #Read LSOA boundaries
-lsoa_boundaries <- st_read("../../Data/LSOA_2021_EW_BFC_V8.shp") %>%
+lsoa_boundaries <- st_read("../Data/LSOA_2021_EW_BFC_V8.shp") %>%
   st_transform(4326)
 lsoa_boundaries$geometry <- st_make_valid(lsoa_boundaries$geometry)
 
@@ -69,17 +67,17 @@ lsoa_boundaries_within_WYCA_buffer$LSOA_area_km2 <- lsoa_boundaries_within_WYCA_
 lsoa_boundaries_within_WYCA$LSOA_area <- st_area(lsoa_boundaries_within_WYCA$geometry)
 lsoa_boundaries_within_WYCA$LSOA_area_km2 <- lsoa_boundaries_within_WYCA$LSOA_area/1000000
 # Read Towns and City boundaries
-towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_WYCA_buffer <- towns[st_within(towns, buffered_WYCA_boundary, sparse = FALSE), ]
 towns_within_WYCA <- towns[st_within(towns, WYCA_bound_small_buffer, sparse = FALSE), ]
 
 towns_manual_WYCA <- data.frame( 
-  id = c("Barnsley", "Bradford", "Burnley", "Bury", "Doncaster", "Halifax", "Harrogate", "Huddersfield", "Leeds", "Oldham"),
-  lon = c(-1.479237, -1.756356, -2.245021, -2.297645, -1.131974, -1.859140, -1.537945, -1.782488, -1.545146, -2.112658), 
-  lat = c(53.553464, 53.794762, 53.789720, 53.592658, 53.524176, 53.723237,53.996504, 53.646861, 53.796904, 53.540754),
-  buffer = c("Y", "N", "Y", "Y", "Y", "N", "Y", "N", "N", "Y")
+  id = c("Barnsley", "Bradford", "Burnley", "Bury", "Doncaster", "Halifax", "Harrogate", "Huddersfield", "Leeds", "Oldham", "Rochdale", "Rotherham", "Wakefield", "York"),
+  lon = c(-1.479237, -1.756356, -2.245021, -2.297645, -1.131974, -1.859140, -1.537945, -1.782488, -1.545146, -2.112658, -2.148727, -1.355379, -1.505890, -1.080324),
+  lat = c(53.553464, 53.794762, 53.789720, 53.592658, 53.524176, 53.723237,53.996504, 53.646861, 53.796904, 53.540754, 53.612109, 53.432603, 53.676009, 53.959055),
+  buffer = c("Y", "N", "Y", "Y", "Y", "N", "Y", "N", "N", "Y", "Y", "Y", "N", "Y")
 ) 
 
 # Convert the dataframe to an sf object, assuming WGS 84 (EPSG: 4326) coordinate reference system
@@ -117,7 +115,7 @@ lsoa_with_town_info_min <- lsoa_with_town_info %>%  select(LSOA21CD,
 #mapview(towns_within_WYCA_buffer)+mapview(WYCA_boundary)+mapview(towns_centroids)+mapview(towns_manual_WYCA)
 #mapview(lsoa_with_town_info)+ mapview(towns_with_buffer)
 
-# Liverpool City Centre - LOCATION not super-important as not used for any calculation. Arbitrary city centre point
+# Leeds City Centre - LOCATION not super-important as not used for any calculation. Arbitrary city centre point
 Leeds_CC <- 
   data.frame(id = "Leeds_CC", lat = 53.796904, lon = -1.545146) %>% 
   st_as_sf(coords = c("lon", "lat"), crs = 4326)
@@ -125,7 +123,7 @@ Leeds_CC_point <-
   geom_sf(data = Leeds_CC, shape = 21, fill = 'white', size = 2)
 mapview(Leeds_CC)
 # Employed Residents
-Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
+Employment <-read_csv("../Data/census2021-ts066-lsoa.csv") %>%
   dplyr::select("geography",
                 "geography code",
                 "Economic activity status: Economically active (excluding full-time students)") %>%
@@ -134,7 +132,7 @@ Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
          "Economically_active" = "Economic activity status: Economically active (excluding full-time students)")
 
 
-# Load and validate BODS GTFS data - for diagnostics only
+# Load and validate BODS GTFS data - code for diagnostics only
 #BODS_WYCA <- read_gtfs("Data/GTFS_Data/r5r/BODS_WYCA.gtfs.zip")
 #BODS_WYCA_valid <- tidytransit::validate_gtfs(BODS_WYCA, warnings = TRUE)
 #view(BODS_manch_valid)
@@ -152,7 +150,7 @@ Employment <-read_csv("../../Data/census2021-ts066-lsoa.csv") %>%
 # 4. R5R Network Setup -------------------------------------------------------
 # Get input files - will load BODS_MANCH and BODS_WYCA - consider simplifying if
 # too slow.
-input_files <- list.files("../../Data/r5r_data", 
+input_files <- list.files("../Data/r5r_data/CA", 
   recursive = TRUE,
   pattern = 'gtfs\\.zip$|pbf$',
   full.names = TRUE)
@@ -163,7 +161,7 @@ input_files
 # Read multi-modal network
 gc() #this setup step requires quite a bit of memory, so best to gc first
 options(java.parameters = "-Xmx8G")
-r5r_WYCA <- setup_r5(data_path = "../../Data/r5r_data", 
+r5r_WYCA <- setup_r5(data_path = "../Data/r5r_data/CA", 
                      verbose=TRUE,
                      overwrite = FALSE) # make sure you leave this to run after it indicates it's finished
 
@@ -182,17 +180,18 @@ print(r5r_WYCA)
 departure_datetime <- as.POSIXct("2024-05-21 08:00:00") 
 mode = c( "TRANSIT") # note function always includes 'WALK' anyway
 walk_speed = 4.32
-max_duration = 2000L
+max_duration = 20000L
 max_walk_time = 30L
 
 WYCA_TT_CC <- 
   travel_time_matrix(
     r5r_core = r5r_WYCA, 
     origins = lsoa_PWC_within_WYCA, 
-    destinations = WYCA_CC, 
+    destinations = Leeds_CC, 
     mode = mode,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
+    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE) %>%
@@ -204,8 +203,9 @@ WYCA_Emp_ettm <-
   expanded_travel_time_matrix(
     r5r_core = r5r_WYCA, 
     origins = lsoa_PWC_within_WYCA, 
-    destinations = WYCA_CC, 
+    destinations = Leeds_CC, 
     mode = mode,
+    max_trip_duration = max_duration,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
     max_trip_duration = 50,
@@ -222,7 +222,7 @@ WYCA_Emp_ttm <-
     mode = mode,
     departure_datetime = departure_datetime,
     walk_speed = walk_speed,
-    max_trip_duration = 500,
+    max_trip_duration = max_duration,
     max_walk_time = max_walk_time,
     verbose = FALSE,
     progress = TRUE) 
@@ -286,13 +286,13 @@ WYCA_ttm_walk <-
 
 # BRES --------------------------------------------------------------------
 # Load employment data from BRES. Note BRES uses 2011 LSOA codes, so lookup for 2021 conversion required
-BRES <- read_csv("../../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
+BRES <- read_csv("../Data/Business_reg_Emp_Surv(BRES)2021.csv", skip = 8) %>% 
   separate("...1", into = c("LSOA11CD", "LSOA11NM"), sep = " : ") %>%
   rename("Employed" = "...2") %>%
   dplyr::select(-c("...3", "...4","...5")) %>%
   na.omit()
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Lookup correct LSOA codes
 # left join will duplicate 2011 employment numbers if LSOA is merged in 2021. 
@@ -314,7 +314,7 @@ job_access <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=BRES_2021_corrected,
   opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index" = "Employed")
 
@@ -323,7 +323,7 @@ job_access_bus <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=BRES_2021_corrected,
   opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_Bus" = "Employed")
 
@@ -332,7 +332,7 @@ job_access_train <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=BRES_2021_corrected,
   opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_Train" = "Employed")
 
@@ -341,7 +341,7 @@ job_access_walk <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=BRES_2021_corrected,
   opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_Walk" = "Employed")
 
@@ -359,7 +359,7 @@ opp <- data.frame(
   travel_cost="travel_time_p50",
   land_use_data=opp,
   opportunity="Employed",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index" = "Employed"))
 
@@ -384,7 +384,7 @@ demand_potential <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=Employment,
   opportunity="Economically_active",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("Demand_potential" = "Economically_active") %>%
   left_join(BRES_2021_corrected, by = "id") %>%
@@ -397,7 +397,7 @@ job_access_demand <- gravity(
   travel_cost="travel_time_p50",
   land_use_data=demand_potential,
   opportunity="Jobs_over_demand_potential",
-  decay_function=decay_logistic(39.7,12.6), #note mean=39.7 and sd=12.6 are calculated in Decay_Params.R file.
+  decay_function=decay_logistic(40.3, 12.8), #note mean=40.3 and sd=12.8 are calculated in 0.Decay_Params_WYCA.R file.
   fill_missing_ids = TRUE) %>%
   rename("PT_Job_Access_Index_demand" = "Jobs_over_demand_potential")
 
@@ -414,5 +414,5 @@ WYCA_dataset <- WYCA_TT_CC %>%
   left_join(job_access_demand, by = c("LSOA21CD"="id")) 
 
 # Write dataset to shapefile
-st_write(WYCA_dataset, "../../Data/WYCA_dataset.shp", append=FALSE)
-st_write(towns_manual_WYCA, "../../Data/towns_centres_WYCA.shp", append=FALSE)
+st_write(WYCA_dataset, "../Data/WYCA_dataset.shp", append=FALSE)
+st_write(towns_manual_WYCA, "../Data/towns_centres_WYCA.shp", append=FALSE)

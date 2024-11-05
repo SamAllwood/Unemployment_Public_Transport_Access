@@ -1,4 +1,4 @@
-### RUN 3.c.PopulationDensityChange_Liverpool.R FIRST to create the accurate Population shapefile
+### RUN 3.c.PopulationDensityChange_WYCA.R FIRST to create the accurate Population shapefile
 # 1. Setup ----------------------------------------------------------------
 options(rgl.useNULL = FALSE)
 require(tidyverse)
@@ -15,11 +15,9 @@ require(magick)
 require(extrafont)
 library(stars)
 
-setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/Liverpool_City_Region")
-
 # 2. Load Data ------------------------------------------------------------
 # Read population density shapefile from "Population_Density_Change.R" script
-LCR_pop <- read_sf("../../Data/LCR_population.shp") %>%
+WYCA_pop <- read_sf("../Data/WYCA_population.shp") %>%
   st_transform(4326) %>%
   rename("Pop_Dens_change" = "Pp_dns_",
          "LSOA21CD" = "LSOA21C",
@@ -27,7 +25,7 @@ LCR_pop <- read_sf("../../Data/LCR_population.shp") %>%
   dplyr::select(LSOA21CD, Pop_Dens_change, Pop_Dens, geometry)
 
 # check the boundary plot
-ggplot(LCR_pop) +
+ggplot(WYCA_pop) +
   geom_sf(aes(fill = Pop_Dens),
           color = "gray66",
           linewidth = 0)+
@@ -35,9 +33,8 @@ ggplot(LCR_pop) +
 
 
 # Create Bounding Box -----------------------------------------------------
-
 # setting the boundary as a bounding box
-bbox <- st_bbox(LCR_pop) %>%
+bbox <- st_bbox(WYCA_pop) %>%
   st_set_crs(4326)
 
 # finding the aspect ratio
@@ -67,7 +64,7 @@ if(width > height) {
 size = 250 * 3.5
 
 pop_raster <- st_rasterize(
-  LCR_pop,
+  WYCA_pop,
   nx = floor(size * w_ratio) %>% as.numeric(),
   ny = floor(size * h_ratio) %>% as.numeric()
 )
@@ -127,7 +124,7 @@ render_camera(theta = 0,
 )
 
 
-outfile <- glue::glue("Plots/LCR_Pop.png")
+outfile <- glue::glue("WYCA/Images/WYCA_Pop.png")
 
 {
   start_time <- Sys.time()

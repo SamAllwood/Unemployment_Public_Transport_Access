@@ -1,32 +1,29 @@
-
+## Script for mapping population density change in WYCA between 2001 and 2021
 # 1. Setup ----------------------------------------------------------------
 library(tidyverse)
 library(knitr)
 library(sf)
 
-setwd("~/Library/CloudStorage/GoogleDrive-sam.allwood3@gmail.com/My Drive/Consulting/Unemployment_Public_Transport_Access/WYCA")
-
 # 2. Load and Filter Datasets ------------------------------------------------------------
-
 # WYCA Boundary + buffer
-Boundaries <- read_sf("../../Data/CAUTH_DEC_2023_EN_BFC.shp")
-WYCA_boundary <- Boundaries %>% filter(CAUTH23NM == "Liverpool City Region") %>%
+Boundaries <- read_sf("../Data/CAUTH_DEC_2023_EN_BFC.shp")
+WYCA_boundary <- Boundaries %>% filter(CAUTH23NM == "West Yorkshire") %>%
   st_transform(4326) 
 WYCA_bound_small_buffer <- WYCA_boundary %>% st_buffer(dist=1000)
 
 # Read Local Authority District (LAD) boundaries
-LADs <- read_sf("../../Data/LAD_DEC_2021_GB_BFC.shp") %>%
+LADs <- read_sf("../Data/LAD_DEC_2021_GB_BFC.shp") %>%
   st_transform(4326)
 
 # Town centres
-towns_centres_WYCA <- read_sf("../../Data/towns_centres_WYCA.shp") %>% 
+towns_centres_WYCA <- read_sf("../Data/towns_centres_WYCA.shp") %>% 
   st_transform(4326) %>%
   filter(buffer == "N") 
 
 # Filter LADs within WYCA
 LADs_WYCA <- LADs %>% filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>% 
   st_transform(4326)
-Pop_2001 <- read_csv("../../Data/Census2001_UsualPopulation.csv", skip=6) %>%
+Pop_2001 <- read_csv("../Data/Census2001_UsualPopulation.csv", skip=6) %>%
   rename("LSOA01" = "2001 super output areas - lower layer",
          "Pop_2001" = "2001") %>%
   drop_na() %>%
@@ -34,15 +31,23 @@ Pop_2001 <- read_csv("../../Data/Census2001_UsualPopulation.csv", skip=6) %>%
   mutate(Pop_2001 = as.numeric(Pop_2001))
 
 # Read Towns and City boundaries
-towns <- st_read("../../Data/TCITY_2015_EW_BGG_V2.shp") %>%
+towns <- st_read("../Data/TCITY_2015_EW_BGG_V2.shp") %>%
   st_transform(4326) 
 towns$geometry <- st_make_valid(towns$geometry)
 towns_within_WYCA <- towns[st_within(towns, WYCA_bound_small_buffer, sparse = FALSE), ]
 
+# Load 2021 Census data on population
+Pop2021 <- read_csv("../Data/Census2021_UsualPopulation.csv", skip=6) %>%
+  rename("LSOA21CD" = "2021 super output area - lower layer",
+         "Usual_Pop_2021" = "2021") %>%
+  drop_na() %>%
+  mutate(LSOA21CD = str_sub(LSOA21CD,1, 9))%>%
+  mutate(Usual_Pop_2021 = as.numeric(Usual_Pop_2021))
+
 
 # 2001 - 2011 LSOA Conversion --------------------------------------------------
 # Load 2001-2011 LSOA lookup table
-LSOA_lookup_01_11 <- read_csv("../../Data/LSOA_2001_2011_lookup.csv")
+LSOA_lookup_01_11 <- read_csv("../Data/LSOA_2001_2011_lookup.csv")
 
 # Split LSOAs - population split between new LSOAs generated in 2011
 # Join the LSOA lookup table to the dataset
@@ -79,9 +84,8 @@ Pop_2001_corrected_11 <- Pop_2001_corrected_11 %>%
 
 
 # 2011 - 2021 LSOA Conversion --------------------------------------------------
-
 # Load 2011-2021 LSOA lookup table
-LSOA_lookup_11_21 <- read_csv("../../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
+LSOA_lookup_11_21 <- read_csv("../Data/LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Lookup_for_England_and_Wales.csv")
 
 # Split LSOAs - population split between new LSOAs generated in 2021
 # Join the LSOA lookup table to the dataset
@@ -115,26 +119,24 @@ Pop_2001_corrected_21 <- Pop_2001_corrected_21 %>%
   left_join(summarized_population11, by = "LSOA21CD")  %>%
   mutate(Pop_2001_corrected_21 = coalesce(Pop_2001_corrected_11.y, Pop_2001_corrected_11.x)) %>%
   dplyr::select(c(Pop_2001_corrected_21, LSOA21CD))  
+# Step 4: replace NAs in Pop_2001_corrected_21 with population as stated in 2021. 
+# There are only 5 across England and Wales, but this prevents any NAs in the dataset
+Pop_2001_corrected_21 <- Pop2021 %>% 
+  left_join(Pop_2001_corrected_21, by = "LSOA21CD") %>%
+  mutate(Pop_2001_corrected_21 = coalesce(Pop_2001_corrected_21, Usual_Pop_2021)) %>%
+  dplyr::select(LSOA21CD, Pop_2001_corrected_21)
 
-
+# Calculate the scaling factor
+sum(Pop2021$Usual_Pop_2021, na.rm = TRUE)/sum(Pop_2001_corrected_21$Pop_2001_corrected_21, na.rm = TRUE)
 
 # Load West Yorkshire Dataset Shapefile ---------------------------------------
-
-WYCA_dataset <- read_sf("../../Data/WYCA_dataset.shp") %>%
+WYCA_dataset <- read_sf("../Data/WYCA_dataset.shp") %>%
                rename("LSOA21CD" = "LSOA21C",
                       "LSOA21NM" = "LSOA21N",
                       "PT_Job_Access_Index" = "PT_Jb_A_I",
                       "Employed_Population" = "Employd",
                       "LSOA_Area" = "LSOA__2") 
 
-# Load 2021 Census data on population
-Pop2021 <- read_csv("../../Data/Census2021_UsualPopulation.csv", skip=6) %>%
-  rename("LSOA21CD" = "2021 super output area - lower layer",
-         "Usual_Pop_2021" = "2021") %>%
-  drop_na() %>%
-  mutate(LSOA21CD = str_sub(LSOA21CD,1, 9))%>%
-  mutate(Usual_Pop_2021 = as.numeric(Usual_Pop_2021))
-sum(Pop2021$Usual_Pop_2021, na.rm = TRUE)/sum(Pop_2001_corrected_21$Pop_2001_corrected_21, na.rm = TRUE)
 
 # Join the population datasets to the WYCA dataset
 WYCA_population <- WYCA_dataset %>%
@@ -167,42 +169,43 @@ WYCA_population <- WYCA_population  %>%
 WYCA_population  %>%
       filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>%
           ggplot() +
-  #          geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
-            geom_sf(aes(fill = Pop_dens_change_cat), color = NA) +
+            geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
+            geom_sf(aes(fill = Pop_dens_change_cat), colour = NA) +
             scale_fill_brewer() +
             labs(fill=" Population Change per
             square kilometer",
                  title = "Population Density Change across WYCA from 2001-2021") +
- #           geom_sf(data=LADs_WYCA, fill = NA, col = "red", size = 1)  +
             geom_sf(data=towns_within_WYCA, fill = NA, col = "black", size = 1) +
             geom_sf(data=towns_centres_WYCA, shape = 21, fill = 'white', size = 1.5) +
-            geom_label( x=-2.88, y=53.40, label="Liverpool", size=3) +
-            geom_label( x=-2.73, y=53.43, label="St. Helens", size=3) +
-            geom_label( x=-3.10, y=53.64, label="Southport", size=3) +
-            geom_label( x=-3.12, y=53.39, label="Birkenhead", size=3) +
+            geom_label( x=-1.756, y=53.79, label="Bradford", size=3) +
+            geom_label( x=-1.859, y=53.723, label="Halifax", size=3) +
+            geom_label( x=-1.782, y=53.646, label="Huddersfield", size=3) +
+            geom_label( x=-1.545, y=53.796, label="Leeds", size=3) +
+            geom_label( x=-1.5058, y=53.676, label="Wakefield", size=3)+
             theme_void() 
 
-ggsave(file = "Images/Population_Density_Change_WYCA.jpg", device = "jpeg")
+ggsave(file = "WYCA/Images/Population_Density_Change_WYCA.jpg", device = "jpeg")
 
 # Write as output shapefile
-write_sf(WYCA_population, "../../Data/WYCA_population.shp")
+write_sf(WYCA_population, "../Data/WYCA_population.shp")
 
 # Calculate Pop_density quantile breaks
 breaks_pop <- classIntervals(WYCA_population$Pop_2021_density, n = 5, style = "quantile")$brks
 # Create a factor variable for PTJA coloring
 WYCA_population$Pop_density_cat <- cut(WYCA_population$Pop_2021_density, breaks = breaks_pop, include.lowest = TRUE, labels = FALSE)
 WYCA_population$Pop_density_cat <- as.factor(WYCA_population$Pop_density_cat)
-labels_pop <- c("<2,100","2,100 - 3,800","3,800 - 5,100","5,100 - 6,500","> 6,500")
+labels_pop <- c("<1,200","1,200 - 2,600","2,600 - 4,000","4,000 - 5,700","> 5,700")
 WYCA_population  %>%
   filter(as.vector(st_within(., WYCA_bound_small_buffer, sparse = FALSE))) %>%
   ggplot() +
-  #          geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
-  geom_sf(aes(fill = Pop_density_cat), color = NA) +
-  scale_fill_brewer(palette = "Spectral", 
-                    direction = -1,
-                    labels = labels_pop) +
-  labs(fill=" Population per square kilometer
-       (quintiles)",
-       title = "Population Density across WYCA in 2021") +
-  theme_void()
-ggsave(file = "Images/Population_Density_WYCA.jpg", device = "jpeg")
+      geom_sf(data=WYCA_boundary, colour="black",linewidth=1.5) +
+      geom_sf(aes(fill = Pop_density_cat), color = NA) +
+      scale_fill_brewer(palette = "Spectral", 
+                        direction = -1,
+                        labels = labels_pop) +
+      labs(fill=" Population per 
+        square kilometer
+           (quintiles)",
+           title = "Population Density across WYCA in 2021") +
+      theme_void()
+ggsave(file = "WYCA/Images/Population_Density_WYCA.jpg", device = "jpeg")
