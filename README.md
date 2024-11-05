@@ -14,7 +14,7 @@ Greater Manchester Combined Authority (left) and Liverpool City Region (right) a
 </div>
 
 ### Interactive Mapping (under development)
-An [interactive map of Liverpool City Region PTJA](https://samallwood.github.io/Unemployment_Public_Transport_Access/)
+An [interactive map of PTJA](https://samallwood.github.io/Unemployment_Public_Transport_Access/)
 
 ### Population Distribution in GMCA and WYCA
 <div style="display: flex; flex-direction: row; gap: 20px;">
