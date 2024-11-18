@@ -15,8 +15,7 @@ Greater Manchester Combined Authority (left) and Liverpool City Region (right) a
 
 ### Interactive Mapping
 An [interactive map of Liverpool and Manchester](https://samallwood.github.io/Unemployment_Public_Transport_Access/) showing job distributions 
-from the Business Register and Employment Survey and Public Transport Job Accessibility (Demand Adjusted). A similar map has also been created for WYCA, which you can 
-find [here] 
+from the Business Register and Employment Survey and Public Transport Job Accessibility (Demand Adjusted). There is a similar map for West Yorkshire available in the docs folder.
 
 ### Population Distribution in GMCA and WYCA
 <div style="display: flex; flex-direction: row; gap: 20px;">
