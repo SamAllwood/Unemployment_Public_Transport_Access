@@ -6,17 +6,17 @@ Public transport job accessibility distribution for each area calculated by summ
 
 PTJA distributions for Greater Manchester Combined Authority, Liverpool City Region Combined Authority and West Yorkshire Combined Authority shown below.
 <figure style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" title="GMCA" width="400">
   <figcaption>Greater Manchester Combined Authority</figcaption>
+  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" title="GMCA" width="400">
 </figure>
-<div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" title = "LCRCA" alt="PTJDA-D" width="400">
+<figure style="display: flex; flex-direction: row; gap: 20px;">
   <figcaption>Liverpool City Region Combined Authority</figcaption>
-</div>
-<div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="WYCA/Images/PTJA_D.jpeg" title="WYCA" width="400">
+  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" title = "LCRCA" alt="PTJDA-D" width="400">
+</figure>
+<figure style="display: flex; flex-direction: row; gap: 20px;">
   <figcaption>West Yorkshire Combined Authority</figcaption>
-</div>
+  <img src="WYCA/Images/PTJA_D.jpeg" title="WYCA" width="400">
+</figure>
 
 ### Interactive Mapping
 An [interactive map of Liverpool and Manchester](https://samallwood.github.io/Unemployment_Public_Transport_Access/) showing job distributions 
