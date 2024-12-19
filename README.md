@@ -6,11 +6,11 @@ Public transport job accessibility distribution for each area calculated by summ
 
 PTJA distributions for Greater Manchester Combined Authority, Liverpool City Region Combined Authority and West Yorkshire Combined Authority shown below.
 <div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" width="400">
-  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
+  <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" title="GMCA" width="400">
+  <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" title = "LCRCA" alt="PTJDA-D" width="400">
 </div>
 <div style="display: flex; flex-direction: row; gap: 20px;">
-  <img src="WYCA/Images/PTJA_D.jpeg" width="400">
+  <img src="WYCA/Images/PTJA_D.jpeg" title="WYCA" width="400">
 </div>
 
 ### Interactive Mapping
