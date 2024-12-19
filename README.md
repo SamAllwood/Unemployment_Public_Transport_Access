@@ -8,10 +8,14 @@ PTJA distributions for Greater Manchester Combined Authority, Liverpool City Reg
 <div style="display: flex; flex-direction: row; gap: 20px;">
   <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" title="GMCA" width="400">
   <figcaption>Greater Manchester Combined Authority</figcaption>
+</div>
+<div style="display: flex; flex-direction: row; gap: 20px;">
   <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" title = "LCRCA" alt="PTJDA-D" width="400">
+  <figcaption>Liverpool City Region Combined Authority</figcaption>
 </div>
 <div style="display: flex; flex-direction: row; gap: 20px;">
   <img src="WYCA/Images/PTJA_D.jpeg" title="WYCA" width="400">
+  <figcaption>West Yorkshire Combined Authority</figcaption>
 </div>
 
 ### Interactive Mapping
