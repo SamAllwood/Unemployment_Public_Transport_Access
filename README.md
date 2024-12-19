@@ -4,7 +4,7 @@ Urban Transport MSc at Uni of Glasgow. Dissertation project on relationship betw
 ### Public Transport Job Accessibility (Demand-adjusted)
 Public transport job accessibility distribution for each area calculated by summing the numbers of jobs decayed according to travel time by public transport to their location. Travel time matrix calculated using [R5R, Rapid Realistic Routing algorithm for multi-model transit journeys](https://github.com/ipeaGIT/r5r).
 
-PTJA distributions for Greater Manchester Combined Authority, Liverpool City Region Combined Authority and West Yorkshire Combined Authority shown below.
+PTJA distributions for three city regions are shown below.
 <figure style="display: flex; flex-direction: row; gap: 20px;">
   <figcaption>Greater Manchester Combined Authority</figcaption>
   <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" title="GMCA" width="400">
