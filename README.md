@@ -4,7 +4,7 @@ MSc Urban Transport at Uni of Glasgow. Dissertation project on relationship betw
 ### Public Transport Job Accessibility (Demand-adjusted)
 Public transport job accessibility distribution for an area calculated by summing the numbers of jobs decayed according to travel time by public transport to their location. Travel time matrix calculated using [R5R, Rapid Realistic Routing algorithm for multi-model transit journeys](https://github.com/ipeaGIT/r5r).
 
-Greater Manchester Combined Authority (left) and Liverpool City Region (right) and West Yorkshire Combined Authority (below)
+Greater Manchester Combined Authority, Liverpool City Region and West Yorkshire Combined Authority.
 <div style="display: flex; flex-direction: row; gap: 20px;">
   <img src="Greater_Manchester_Combined_Authority/Images/PTJA_D_GMCA.jpeg" width="400">
   <img src="Liverpool_City_Region/Images/PTJA_D.jpeg" alt="PTJDA-D" width="400">
@@ -15,7 +15,7 @@ Greater Manchester Combined Authority (left) and Liverpool City Region (right) a
 
 ### Interactive Mapping
 An [interactive map of Liverpool and Manchester](https://samallwood.github.io/Unemployment_Public_Transport_Access/) showing job distributions 
-from the Business Register and Employment Survey and Public Transport Job Accessibility (Demand Adjusted). There is a similar map for West Yorkshire available in the docs folder.
+from the Business Register and Employment Survey and Public Transport Job Accessibility (Demand Adjusted). There is a similar map for West Yorkshire available in the docs folder but displaying all three combined authorities on one map made the file too large for github.
 
 ### Population Distribution in GMCA and WYCA
 <div style="display: flex; flex-direction: row; gap: 20px;">
